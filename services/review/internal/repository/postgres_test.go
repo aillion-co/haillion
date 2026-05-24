@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"aillion/services/review/internal/domain"
+	"haillion/services/review/internal/domain"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"

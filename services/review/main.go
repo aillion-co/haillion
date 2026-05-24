@@ -11,15 +11,15 @@ import (
 	"syscall"
 	"time"
 
-	"aillion/services/review/internal/api"
-	"aillion/services/review/internal/repository"
+	"haillion/services/review/internal/api"
+	"haillion/services/review/internal/repository"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
 	port := flag.String("port", "8085", "HTTP port to listen on")
-	dbURL := flag.String("db", "postgres://postgres:postgres@localhost:5432/aillion?sslmode=disable", "PostgreSQL database connection URL")
+	dbURL := flag.String("db", "postgres://postgres:postgres@localhost:5432/haillion?sslmode=disable", "PostgreSQL database connection URL")
 	flag.Parse()
 
 	// Initialize slog JSON logger

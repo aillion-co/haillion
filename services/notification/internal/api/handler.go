@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"aillion/services/notification/internal/sse"
+	"haillion/services/notification/internal/sse"
 )
 
 type NotificationServer struct {

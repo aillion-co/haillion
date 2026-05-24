@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"aillion/services/identity/internal/domain"
+	"haillion/services/identity/internal/domain"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )

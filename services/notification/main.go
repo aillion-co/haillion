@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"aillion/services/notification/internal/api"
-	"aillion/services/notification/internal/sse"
+	"haillion/services/notification/internal/api"
+	"haillion/services/notification/internal/sse"
 )
 
 func main() {

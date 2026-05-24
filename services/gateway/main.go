@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"aillion/services/gateway/internal/proxy"
+	"haillion/services/gateway/internal/proxy"
 )
 
 func getEnv(key, fallback string) string {

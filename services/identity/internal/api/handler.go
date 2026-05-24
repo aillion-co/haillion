@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"aillion/services/identity/internal/domain"
+	"haillion/services/identity/internal/domain"
 )
 
 type UserServer struct {

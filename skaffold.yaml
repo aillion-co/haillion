@@ -1,34 +1,34 @@
 apiVersion: skaffold/v4beta7
 kind: Config
 metadata:
-  name: aillion
+  name: haillion
 build:
   artifacts:
-    - image: aillion-billing
+    - image: haillion-billing
       context: .
       docker:
         dockerfile: services/billing/Dockerfile
-    - image: aillion-gateway
+    - image: haillion-gateway
       context: .
       docker:
         dockerfile: services/gateway/Dockerfile
-    - image: aillion-identity
+    - image: haillion-identity
       context: .
       docker:
         dockerfile: services/identity/Dockerfile
-    - image: aillion-matching
+    - image: haillion-matching
       context: .
       docker:
         dockerfile: services/matching/Dockerfile
-    - image: aillion-notification
+    - image: haillion-notification
       context: .
       docker:
         dockerfile: services/notification/Dockerfile
-    - image: aillion-review
+    - image: haillion-review
       context: .
       docker:
         dockerfile: services/review/Dockerfile
-    - image: aillion-trip
+    - image: haillion-trip
       context: .
       docker:
         dockerfile: services/trip/Dockerfile
@@ -40,6 +40,6 @@ deploy:
 portForward:
   - resourceType: service
     resourceName: gateway
-    namespace: aillion
+    namespace: haillion
     port: 8080
     localPort: 8080

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math"
 
-	"aillion/services/matching/internal/domain"
+	"haillion/services/matching/internal/domain"
 )
 
 var ErrNoDriversFound = errors.New("no drivers found nearby")

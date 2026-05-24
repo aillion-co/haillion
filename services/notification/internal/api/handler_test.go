@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"aillion/services/notification/internal/sse"
+	"haillion/services/notification/internal/sse"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
