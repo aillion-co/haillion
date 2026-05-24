@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"aillion/services/matching/internal/domain"
+	"haillion/services/matching/internal/domain"
 )
 
 type PostgresLocationRepository struct {

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"aillion/services/trip/internal/domain"
+	"haillion/services/trip/internal/domain"
 
 	"github.com/google/uuid"
 )

@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"aillion/services/identity/internal/domain"
+	"haillion/services/identity/internal/domain"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

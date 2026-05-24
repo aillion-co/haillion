@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"aillion/services/billing/internal/domain"
+	"haillion/services/billing/internal/domain"
 )
 
 type PostgresPaymentRepository struct {

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"aillion/services/trip/internal/domain"
+	"haillion/services/trip/internal/domain"
 )
 
 type PostgresTripRepository struct {

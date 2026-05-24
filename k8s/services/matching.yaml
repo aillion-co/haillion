@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: matching
-  namespace: aillion
+  namespace: haillion
   labels:
     app: matching
 spec:
@@ -17,7 +17,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: matching
-  namespace: aillion
+  namespace: haillion
   labels:
     app: matching
   annotations:
@@ -42,14 +42,14 @@ spec:
           type: RuntimeDefault
       containers:
         - name: matching
-          image: aillion-matching:1.0.0
+          image: haillion-matching:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8082
               protocol: TCP
           args:
             - "-port=8082"
-            - "-db=postgres://postgres:postgres@postgres:5432/aillion?sslmode=disable"
+            - "-db=postgres://postgres:postgres@postgres:5432/haillion?sslmode=disable"
           resources:
             requests:
               cpu: "50m"
@@ -81,7 +81,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: matching
-  namespace: aillion
+  namespace: haillion
 spec:
   podSelector:
     matchLabels:

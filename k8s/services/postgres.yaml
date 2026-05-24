@@ -1,0 +1,188 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: haillion
+data:
+  01-postgis.sql: |
+    CREATE EXTENSION IF NOT EXISTS postgis;
+
+    CREATE TABLE IF NOT EXISTS driver_locations (
+        driver_id UUID PRIMARY KEY,
+        geom GEOGRAPHY(Point, 4326) NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_driver_locations_geom ON driver_locations USING GIST (geom);
+
+  02-identity.sql: |
+    CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        role VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+  03-trip.sql: |
+    CREATE TABLE IF NOT EXISTS trips (
+        id UUID PRIMARY KEY,
+        rider_id UUID NOT NULL,
+        driver_id UUID,
+        state VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+  04-billing.sql: |
+    CREATE TABLE IF NOT EXISTS payments (
+        id UUID PRIMARY KEY,
+        trip_id UUID NOT NULL,
+        amount BIGINT NOT NULL,
+        state VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+  05-review.sql: |
+    CREATE TABLE IF NOT EXISTS reviews (
+        id UUID PRIMARY KEY,
+        trip_id UUID NOT NULL,
+        reviewer_id UUID NOT NULL,
+        subject_id UUID NOT NULL,
+        score INT NOT NULL CHECK (score >= 1 AND score <= 5),
+        comment TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT idx_reviews_trip_reviewer UNIQUE (trip_id, reviewer_id)
+    );
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: haillion
+  labels:
+    app: postgres
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: haillion
+  labels:
+    app: postgres
+  annotations:
+    checkov.io/skip1: CKV_K8S_15=Local development uses public registry
+    checkov.io/skip2: CKV_K8S_43=Local development uses standard versioned tag
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: postgis/postgis:15-3.3-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: postgres
+            - name: POSTGRES_DB
+              value: haillion
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "400m"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d/
+            - name: pg-data
+              mountPath: /var/lib/postgresql/data
+            - name: pg-run
+              mountPath: /run/postgresql
+            - name: pg-tmp
+              mountPath: /tmp
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: postgres-init-scripts
+        - name: pg-data
+          emptyDir: {}
+        - name: pg-run
+          emptyDir: {}
+        - name: pg-tmp
+          emptyDir: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres
+  namespace: haillion
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - billing
+                  - identity
+                  - matching
+                  - review
+                  - trip
+      ports:
+        - protocol: TCP
+          port: 5432
