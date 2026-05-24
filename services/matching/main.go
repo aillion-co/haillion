@@ -11,24 +11,25 @@ import (
 	"syscall"
 	"time"
 
-	"aillion/services/identity/internal/api"
-	"aillion/services/identity/internal/repository"
+	"aillion/services/matching/internal/api"
+	"aillion/services/matching/internal/repository"
+	"aillion/services/matching/internal/service"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
-	port := flag.String("port", "8081", "HTTP port to listen on")
+	port := flag.String("port", "8082", "HTTP port to listen on")
 	dbURL := flag.String("db", "postgres://postgres:postgres@localhost:5432/aillion?sslmode=disable", "PostgreSQL database connection URL")
 	flag.Parse()
 
-	// Initialize slog
+	// Initialize slog JSON logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	slog.Info("starting identity service", "port", *port)
+	slog.Info("starting matching service", "port", *port)
 
-	// Open database connection
+	// Open DB connection
 	db, err := sql.Open("pgx", *dbURL)
 	if err != nil {
 		slog.Error("failed to open database", "error", err)
@@ -40,7 +41,7 @@ func main() {
 		}
 	}()
 
-	// Verify database connection is alive
+	// Ping check
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
@@ -50,8 +51,9 @@ func main() {
 	}
 
 	// Wire up layers
-	repo := repository.NewPostgresUserRepository(db)
-	mux := api.NewServer(repo)
+	repo := repository.NewPostgresLocationRepository(db)
+	matcher := service.NewMatcherService(repo)
+	mux := api.NewServer(repo, matcher)
 
 	server := &http.Server{
 		Addr:              ":" + *port,
@@ -59,14 +61,14 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	// Setup graceful shutdown
+	// Graceful shutdown
 	shutdownError := make(chan error)
 	go func() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		<-sigChan
 
-		slog.Info("shutting down identity service gracefully...")
+		slog.Info("shutting down matching service gracefully...")
 
 		ctx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer shutdownCancel()
@@ -84,5 +86,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.Info("identity service stopped successfully")
+	slog.Info("matching service stopped successfully")
 }
