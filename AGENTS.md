@@ -217,3 +217,30 @@ To optimize speed, avoid external CI runner overhead, and maintain high throughp
 4. **Approve & Comment:** Reviewer posts an official review assessment comment to the PR. (Since GitHub prevents self-approval, review comments serve as the approval sign-off).
 5. **Merge & Close:** Reviewer merges the PR locally (`gh pr merge --merge --delete-branch`), checks out `main`, pulls the changes, closes the issue, and moves directly to the next issue in the queue.
 
+
+## Containerization and Kubernetes
+
+All Go microservices must be containerized and deployed to a local KIND cluster using Skaffold.
+
+### Dockerfile (non-negotiable)
+- **Base image:** Use `golang:<version>-alpine` for building, and a minimal base like `alpine` or `gcr.io/distroless/static` for the final stage.
+- **Security:** Do not run as root. Create a non-root user and use `USER <uid>:<gid>`.
+- **Optimization:** Leverage multi-stage builds. Copy `go.mod` and `go.sum` first, then run `go mod download`.
+- **Validation:** Must pass `hadolint` (authoritative gate in CI).
+
+### Kubernetes Manifests (under `k8s/services/`)
+- Every service needs a `Deployment` and a `Service`.
+- **Security Contexts:** Must enforce `runAsNonRoot: true`, `readOnlyRootFilesystem: true`, and drop all capabilities.
+- **Resource limits/requests:** Every container must define memory and CPU requests/limits.
+- **Probes:** Implement `livenessProbe` and `readinessProbe` for every service (a simple HTTP handler or TCP socket check).
+- **NetworkPolicies:** Services should explicitly allow ingress only from required components (e.g., Gateway allows external ingress, backend services only allow ingress from Gateway).
+- **Validation:** Must pass `checkov` (authoritative gate in CI).
+
+### Local Development (Skaffold & KIND)
+- A root `skaffold.yaml` orchestrates building the Dockerfiles and deploying the `k8s/` manifests to a local KIND cluster.
+- The `gateway` service should be exposed (e.g., via `portForward` in Skaffold) so local tests and frontends can reach the entire platform via one entrypoint.
+
+## End-to-End Testing
+- Create a distinct test package (e.g., `test/e2e/`) that runs solely against the deployed API Gateway endpoint.
+- E2E tests should use standard `testing` framework, treating the entire system as a black box (HTTP in, HTTP out).
+- Verify the full platform lifecycle: rider registers -> driver registers -> driver updates location -> rider requests match -> trip accepted -> trip started -> trip completed -> payment created/processed -> review submitted.
