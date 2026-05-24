@@ -24,6 +24,7 @@ func NewGatewayRouter(serviceURLs map[string]string) (*GatewayRouter, error) {
 		}
 
 		proxy := httputil.NewSingleHostReverseProxy(targetURL)
+		proxy.Director = nil //nolint:staticcheck // SA1019: NewSingleHostReverseProxy sets Director, so we must nil it to use Rewrite without conflict
 		prefixCopy := prefix // Capture loop variable
 
 		proxy.Rewrite = func(pr *httputil.ProxyRequest) {
