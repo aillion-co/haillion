@@ -1,0 +1,3 @@
+# Vendored doc snapshots are generated, not committed.
+# Populate locally or in CI with `make docs` (see docs/manifest.tsv).
+/docs/vendor/

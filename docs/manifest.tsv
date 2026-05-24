@@ -1,0 +1,44 @@
+# docs/manifest.tsv — products this repo uses and where to vendor their docs.
+#
+# One row per product, pipe-delimited. Whitespace around fields is ignored;
+# blank lines and lines starting with '#' are comments.
+#
+#   name      short id; becomes docs/vendor/<name>.md  (chars: A-Z a-z 0-9 . _ -)
+#   method    how gen-docs.sh fetches it:
+#               llms-txt  curl an upstream llms.txt / llms-full.txt bundle
+#               git-raw   curl a raw file from GitHub (works behind GitHub-only egress)
+#               go-doc    run `go doc -all <import-path>`, pinned to go.mod's version
+#               none      reference-only; listed in the index, nothing fetched
+#   source    the URL to curl (llms-txt/git-raw), or the Go import path (go-doc),
+#               or '-' for none
+#   reference canonical human docs URL (for the index)
+#
+# Refresh with `make docs`. Run it where outbound network is open: in this repo's
+# sandbox only GitHub egress is allowed, so llms-txt rows will MISS here and must
+# be refreshed locally or in CI.
+#
+# name           | method   | source                                                                      | reference
+
+# --- Frontend stack (web/) — llms.txt bundles, fetched where egress is open ---
+svelte           | llms-txt | https://svelte.dev/llms-full.txt                                            | https://svelte.dev/docs
+bun              | llms-txt | https://bun.sh/llms.txt                                                     | https://bun.sh/docs
+vitest           | llms-txt | https://vitest.dev/llms.txt                                                 | https://vitest.dev/guide/
+playwright       | llms-txt | https://playwright.dev/llms.txt                                             | https://playwright.dev/docs/intro
+typescript       | none     | -                                                                           | https://www.typescriptlang.org/docs/
+
+# --- Tooling — GitHub-hosted, reachable from the sandbox ---
+golangci-lint    | git-raw  | https://raw.githubusercontent.com/golangci/golangci-lint/master/README.md   | https://golangci-lint.run
+gosec            | git-raw  | https://raw.githubusercontent.com/securego/gosec/master/README.md           | https://github.com/securego/gosec
+govulncheck      | git-raw  | https://raw.githubusercontent.com/golang/vuln/master/README.md              | https://go.dev/doc/tutorial/govulncheck
+checkov          | git-raw  | https://raw.githubusercontent.com/bridgecrewio/checkov/main/README.md       | https://www.checkov.io/
+hadolint         | git-raw  | https://raw.githubusercontent.com/hadolint/hadolint/master/README.md        | https://github.com/hadolint/hadolint
+
+# --- Go libraries — snapshotted from the version pinned in go.mod via `go doc` ---
+# These MISS until a root go.mod exists and the dependency is added.
+pgx              | go-doc   | github.com/jackc/pgx/v5                                                     | https://pkg.go.dev/github.com/jackc/pgx/v5
+grpc             | go-doc   | google.golang.org/grpc                                                      | https://pkg.go.dev/google.golang.org/grpc
+protobuf         | go-doc   | google.golang.org/protobuf/proto                                            | https://pkg.go.dev/google.golang.org/protobuf
+otel             | go-doc   | go.opentelemetry.io/otel                                                    | https://pkg.go.dev/go.opentelemetry.io/otel
+golang-migrate   | go-doc   | github.com/golang-migrate/migrate/v4                                        | https://pkg.go.dev/github.com/golang-migrate/migrate/v4
+testify          | go-doc   | github.com/stretchr/testify/require                                         | https://pkg.go.dev/github.com/stretchr/testify
+uuid             | go-doc   | github.com/google/uuid                                                      | https://pkg.go.dev/github.com/google/uuid

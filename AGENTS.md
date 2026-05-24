@@ -22,6 +22,7 @@ This repo is too large to fit in any model's context. Follow these rules without
 4. **Externalise state.** Decisions, partial findings, and TODOs go in the GitHub issue comments — not your context. Re-read the issue at the start of each turn.
 5. **Bounded sub-tasks.** If a task touches more than ~5 files or ~3 packages, stop and ask the planner to split it.
 6. **Fresh context per issue.** Do not carry state between issues in your head. The issue body and its comments are the source of truth.
+7. **Consult vendored docs before the web.** Upstream docs for the libraries and tools this repo uses can be snapshotted under `docs/vendor/` (index in `docs/vendor/INDEX.md`), pinned to the versions we run; for Go packages, `go doc <pkg>` is authoritative. Read those before any web search — they are version-matched, free, and offline. `docs/vendor/` is generated, not committed (gitignored) — run `make docs` (`/docs`) to populate or refresh it; the source of truth is `docs/manifest.tsv`.
 
 ## Implementation discipline (applies to any agent that writes code)
 

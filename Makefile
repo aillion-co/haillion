@@ -33,6 +33,14 @@ tools: go-tools checkov hadolint ## Install all tool dependencies (Go tools + sc
 	@echo ""
 	@echo "Done. ripgrep, fd and gh are OS-managed — run 'make system-tools' for those."
 
+.PHONY: docs
+docs: ## Vendor up-to-date product docs into docs/vendor/ (run where egress is open)
+	./scripts/gen-docs.sh
+
+.PHONY: map
+map: ## Regenerate the repo map under .opencode/maps/
+	./scripts/gen-repo-map.sh
+
 .PHONY: go-tools
 go-tools: ## Install Go tools: goimports, gopls, golangci-lint, gosec, govulncheck
 	$(GO) install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
