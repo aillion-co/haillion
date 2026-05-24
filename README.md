@@ -129,3 +129,33 @@ told to plan around them in `AGENTS.md`.
 
 The detailed, exact instructions for each agent live in the files above — this
 README is just the overview.
+
+## Running the Platform Locally
+
+Haillion is designed to be easily runnable locally using Docker, Kubernetes (via KIND), and Skaffold.
+
+1. Install prerequisites: [Docker](https://docs.docker.com/get-docker/), [KIND](https://kind.sigs.k8s.io/docs/user/quick-start/), [kubectl](https://kubernetes.io/docs/tasks/tools/), and [Skaffold](https://skaffold.dev/docs/install/).
+2. Start the local KIND cluster:
+   ```bash
+   kind create cluster --name agent-platform
+   ```
+3. Run Skaffold to build the images and deploy them to the cluster:
+   ```bash
+   skaffold run
+   ```
+4. The API Gateway will be automatically port-forwarded to `http://localhost:8080`.
+
+### Running E2E Tests
+
+The repository contains a full end-to-end integration test suite simulating a complete user journey (riders, drivers, matching, trips, billing, and reviews).
+
+Once the platform is running locally via `skaffold run`:
+
+1. Ensure the gateway is port-forwarded:
+   ```bash
+   kubectl port-forward svc/gateway -n haillion 8080:8080 > /dev/null 2>&1 &
+   ```
+2. Run the tests:
+   ```bash
+   go test -v ./test/e2e/...
+   ```
