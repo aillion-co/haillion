@@ -95,14 +95,20 @@ The project runs in one of two modes:
 
 Run `make godark` **while still online**: it installs the tools, warms the Go
 and frontend caches, pulls the reference docs, snapshots the GitHub issues, and
-then switches the agents to local **Gemma** models that run without a network.
-After that, building, testing, linting, reading docs, and reading/updating
-issues all work offline; check the mode and readiness with `make godark-check`.
-Issue changes you make while dark are queued and replayed with
-`make issues-sync` when you reconnect. Run `make online` to switch back to the
-Gemini models and re-enable the network. The remaining network-only steps —
-opening PRs, `govulncheck`'s vulnerability database, and adding new
-dependencies — are documented in `AGENTS.md`.
+then switches the agents to local **Gemma** models (planner/review on
+`gemma-4-31B-it`, coding/frontend on `gemma-4-26B-A4B-it`) that run without a
+network. After that, building, testing, linting, reading docs, and
+reading/updating issues all work offline; check the mode and readiness with
+`make godark-check`. Issue changes you make while dark are queued and replayed
+with `make issues-sync` when you reconnect. Run `make online` to switch back to
+the Gemini models and re-enable the network.
+
+`make godark` rewrites the `model:` fields in `.opencode/agent/*.md` to the
+local models — so while dark those files show as modified. Run `make online` to
+restore the committed Gemini defaults before committing. The remaining
+network-only steps — opening PRs, `govulncheck`'s vulnerability database, the Go
+toolchain download, and adding new dependencies — need a connection; agents are
+told to plan around them in `AGENTS.md`.
 
 ## How to use it
 

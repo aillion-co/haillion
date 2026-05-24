@@ -10,8 +10,8 @@
 # installs web/ deps + Playwright browsers, populates docs/vendor/, snapshots
 # the issues, then switches agents to local Gemma models and forces network
 # tooling offline. `make online` switches back to the Gemini models and
-# reconnects. Verify with `make godark-check`. See "Godark mode (offline work)"
-# in AGENTS.md for what does and does not work without a network.
+# reconnects. Verify with `make godark-check`. See the README for the mode
+# toggle, and "Working offline" in AGENTS.md for the agent-facing constraints.
 #
 # Go-based tools install into $(go env GOPATH)/bin; ensure that is on your PATH.
 #

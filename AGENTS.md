@@ -10,34 +10,19 @@ The Go services are **headless**: they expose gRPC and HTTP+JSON APIs and render
 - Test: `go test ./<changed-package>/...` first; `go test ./...` before PR.
 - LSP: gopls is available. **Use it for symbol lookup instead of grep where possible** (`workspace/symbol`, `textDocument/definition`, `textDocument/references`).
 - Search: `rg` (ripgrep) for content, `fd` for paths. Never `find` or `grep -r`.
-- GitHub: `gh` CLI is authenticated. Use `gh issue` and `gh pr` for all repo interactions.
+- GitHub: `gh` CLI is authenticated. Use `./scripts/issues.sh` for issue operations (see "Working offline" below) and `gh pr` for pull requests.
 
-## Godark mode (offline work)
+## Working offline
 
-This repo has two modes, toggled with one command each:
+The project can run fully offline ("godark" mode); how a developer toggles modes, and which model each agent uses, is operator setup documented in the README. What matters for you as an agent:
 
-- **`make online`** (the committed default) — connected mode. Agents run on cloud models: planner and reviewer on **`google/gemini-3.1-pro`** (deep reasoning), coder and frontend on **`google/gemini-3.5-flash`** (fast implementation).
-- **`make godark`** — fully offline mode for working disconnected (on a plane, etc.). Run it **while still online**: it installs the tools, warms the Go module cache and toolchain, installs `web/` deps and Playwright browsers, populates `docs/vendor/`, and snapshots the issues — then switches agents to the local, runnable-offline **Gemma** models (planner/reviewer `google/gemma-4-31B-it`, coder/frontend `google/gemma-4-26B-A4B-it`) and forces network-dependent tooling offline.
+**Issue operations go through `./scripts/issues.sh`, not raw `gh issue`.** It mirrors the `gh issue` subcommands (`list`, `view`, `comment`, `relabel`, `state`, `create`) but reads from a local cache and, when offline, queues writes to an append-only journal — so the same commands work online and offline. Raw `gh issue` bypasses the cache; do not use it. (PRs still use `gh pr`, which needs the network.)
 
-`make online` reverses the switch (restores the Gemini models, re-enables the network). Check the current mode and offline readiness with `make godark-check`. Note: `godark` edits the `model:` fields in `.opencode/agent/*.md` locally — run `make online` to restore the committed Gemini defaults before committing.
-
-**Issue operations go through `./scripts/issues.sh`, not raw `gh issue`.** The wrapper mirrors the `gh issue` subcommands (`list`, `view`, `comment`, `relabel`, `state`, `create`) but reads from a local cache and, when offline, queues writes to an append-only journal. The same commands therefore work at a desk and on a plane. Raw `gh issue` only works online and bypasses the cache — do not use it directly.
-
-**Works offline (after `make godark`):**
-- `go build`, `go vet`, `go test`, `gofmt`, `goimports`, `gopls` — backed by the warm module cache.
-- `golangci-lint`, `gosec` — purely local analysis.
-- `bun run dev|build|test` and Playwright — once deps and browsers are cached.
-- `go doc <pkg>` and the snapshots in `docs/vendor/` — version-matched references.
-- **Reading and mutating issues** via `./scripts/issues.sh` — reads hit the cache; comments, label/state changes, and new issues (assigned a temporary `LOCAL-n` id) are queued.
-- `git commit` — commit locally; push when reconnected.
-
-**Reconnecting:** run `make issues-sync` to replay the queued issue changes. Comments are append-only (always safe); label/state changes apply as deltas so concurrent edits by others survive; created issues get their real `#number` with a `LOCAL-n` → real remap. Anything that genuinely conflicts (issue closed upstream, etc.) is written to `.opencode/cache/conflicts.md` for human/planner review rather than force-applied. Check pending state any time with `make issues-status`.
-
-**Needs the network (plan around it):**
-- **Opening PRs.** `gh pr create` is not cached — implement against an issue you fetched before disconnecting, commit locally, and open the PR on reconnect. Do not begin work that depends on reading issues you have not already pulled into the cache.
-- **`govulncheck`** queries the online vulnerability database — the one proof gate you cannot run offline. Run the other gates locally and let CI be the authoritative `govulncheck` gate.
-- **`go get` / adding any dependency.** Pulling a new module or npm package needs the network; defer dependency changes until reconnected.
-- **The Go toolchain.** Ensure your installed Go is ≥ the `go` directive in `go.mod` (or build once online so the pinned toolchain is cached), otherwise Go tries to download a toolchain. `GOTOOLCHAIN=local` forces use of the installed one.
+**Offline-session constraints — plan around these:**
+- **Work only against issues already in the cache.** Reading and mutating cached issues works; comments, label/state changes, and new issues (assigned a temporary `LOCAL-n` id) are queued and replayed on reconnect. Do not begin work that needs an issue you have not pulled.
+- **Opening a PR needs the network.** Implement, commit locally, and open the PR (`gh pr create`) when reconnected.
+- **`govulncheck` needs the online vulnerability database** — the one proof gate you cannot run offline. Run the other gates locally and let CI be the authoritative `govulncheck` gate.
+- **Adding a dependency needs the network** (`go get`, new npm package); defer dependency changes until reconnected.
 
 ## Context discipline (read this every session)
 
