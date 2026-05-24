@@ -9,6 +9,11 @@ export interface MatchResponse {
 	eta_seconds: number;
 }
 
+export interface DriverLocationRequest {
+	lat: number;
+	lng: number;
+}
+
 const API_BASE_URL = 'http://localhost:8080/api';
 
 export class ApiError extends Error {
@@ -35,4 +40,21 @@ export async function matchDriver(request: MatchRequest): Promise<MatchResponse>
 	}
 
 	return response.json();
+}
+
+export async function updateDriverLocation(
+	id: string,
+	request: DriverLocationRequest
+): Promise<void> {
+	const response = await fetch(`${API_BASE_URL}/matching/drivers/${id}/location`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify(request)
+	});
+
+	if (!response.ok) {
+		throw new ApiError(response.status, `Updating location failed with status ${response.status}`);
+	}
 }
