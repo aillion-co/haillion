@@ -56,6 +56,7 @@ ensure_dirs() { mkdir -p "$ISSUES_DIR" "$QUEUE"; }
 
 online() {
   [ -n "${ISSUES_OFFLINE:-}" ] && return 1
+  [ -f "$CACHE/mode" ] && [ "$(cat "$CACHE/mode" 2>/dev/null)" = dark ] && return 1
   command -v gh >/dev/null 2>&1 || return 1
   [ -n "${ISSUES_ONLINE:-}" ] && return 0
   timeout 8 gh api rate_limit >/dev/null 2>&1

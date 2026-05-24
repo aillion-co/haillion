@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Reviews open PRs against their linked issue's acceptance criteria.
-model: google/gemma-4-31B-it
+model: google/gemini-3.1-pro
 tools:
   read: true
   grep: true

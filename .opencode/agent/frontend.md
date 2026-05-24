@@ -1,7 +1,7 @@
 ---
 name: frontend
 description: Implements a single frontend GitHub issue end-to-end in web/. SvelteKit + TypeScript + Bun. Picks up issues labeled agent:frontend + status:planned.
-model: google/gemma-4-26B-A4B-it
+model: google/gemini-3.5-flash
 tools:
   read: true
   grep: true

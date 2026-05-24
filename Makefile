@@ -5,11 +5,13 @@
 # and the security scanners. A few tools (ripgrep, fd, gh) come from your OS
 # package manager — run `make system-tools` to print the commands.
 #
-# `make bootstrap` is the one command to prepare for working fully offline
-# (planes, etc.): it installs the tools, warms the Go module cache, installs
-# web/ deps + Playwright browsers, and populates docs/vendor/. Run it while
-# online, then verify with `make offline-check`. See "Offline / disconnected
-# work" in AGENTS.md for what does and does not work without a network.
+# `make godark` is the one command to switch to fully offline mode (planes,
+# etc.): while still online it installs tools, warms the Go module cache,
+# installs web/ deps + Playwright browsers, populates docs/vendor/, snapshots
+# the issues, then switches agents to local Gemma models and forces network
+# tooling offline. `make online` switches back to the Gemini models and
+# reconnects. Verify with `make godark-check`. See "Godark mode (offline work)"
+# in AGENTS.md for what does and does not work without a network.
 #
 # Go-based tools install into $(go env GOPATH)/bin; ensure that is on your PATH.
 #
@@ -39,14 +41,20 @@ tools: go-tools checkov hadolint ## Install all tool dependencies (Go tools + sc
 	@echo ""
 	@echo "Done. ripgrep, fd and gh are OS-managed — run 'make system-tools' for those."
 
-.PHONY: bootstrap
-bootstrap: tools go-cache frontend-deps docs ## Prepare for fully offline work — run this while online
-	@./scripts/issues.sh pull || echo "bootstrap: issue cache skipped (gh not ready/offline) — run 'make issues-pull' later"
+.PHONY: godark
+godark: tools go-cache frontend-deps docs ## Switch to GODARK (fully offline): prep caches, then local models — run while online
+	@./scripts/issues.sh pull || echo "godark: issue cache skipped (gh not ready/offline) — run 'make issues-pull' later"
+	@./scripts/mode.sh godark
 	@echo ""
-	@echo "Offline prep complete. Verify with 'make offline-check'."
-	@echo "Caveats: govulncheck needs the online vuln DB (defer to CI offline). The GitHub"
-	@echo "Issues bus is cached for offline use ('make issues-sync' on reconnect), but"
-	@echo "opening PRs still needs a network — see AGENTS.md 'Offline / disconnected work'."
+	@echo "You are dark. Build/test/lint, docs, and issue ops work offline. Verify with 'make godark-check'."
+	@echo "Caveats: govulncheck needs the online vuln DB (defer to CI). Opening PRs needs a"
+	@echo "network. Run 'make online' to reconnect and restore the Gemini models."
+
+.PHONY: online
+online: ## Switch back to connected mode (Gemini models, network tooling re-enabled)
+	@./scripts/mode.sh online
+	@pend=$$([ -f .opencode/cache/queue/journal.jsonl ] && grep -c . .opencode/cache/queue/journal.jsonl 2>/dev/null || echo 0); \
+		if [ "$$pend" -gt 0 ]; then echo "online: $$pend queued issue change(s) — run 'make issues-sync' to reconcile."; fi
 
 .PHONY: issues-pull
 issues-pull: ## Snapshot GitHub issues to the local offline cache (online)
@@ -85,8 +93,9 @@ frontend-deps: ## Install web/ deps with Bun + Playwright browsers (no-op until 
 		done; \
 	fi
 
-.PHONY: offline-check
-offline-check: ## Report whether this machine is ready to work offline
+.PHONY: godark-check
+godark-check: ## Report current mode + whether this machine is ready to work offline
+	@./scripts/mode.sh status
 	@echo "Offline readiness:"
 	@for t in go gopls goimports golangci-lint gosec govulncheck; do \
 		if command -v $$t >/dev/null 2>&1; then printf "  [ok]   %s\n" "$$t"; else printf "  [MISS] %s — run 'make go-tools'\n" "$$t"; fi; \

@@ -85,15 +85,22 @@ trustworthy. The main ones:
 - **Stay in your lane.** Services can't reach into each other's private code;
   reviewers don't rewrite code; planners don't write code.
 
-## Works offline
+## Online and godark modes
 
-The repo is built so you can develop with no network — on a plane, say. Run
-`make bootstrap` once **while online**: it installs the tools, warms the Go and
-frontend caches, pulls the reference docs, and snapshots the GitHub issues into
-a local cache. After that, building, testing, linting, reading docs, and
-reading/updating issues all work offline; check readiness with
-`make offline-check`. Issue changes you make offline are queued and replayed
-with `make issues-sync` when you reconnect. The remaining network-only steps —
+The project runs in one of two modes:
+
+- **Online** (default) — agents use cloud models: **Gemini 3.1 Pro** for
+  planning and review, **Gemini 3.5 Flash** for coding and frontend work.
+- **Godark** — fully offline, for working with no network (on a plane, say).
+
+Run `make godark` **while still online**: it installs the tools, warms the Go
+and frontend caches, pulls the reference docs, snapshots the GitHub issues, and
+then switches the agents to local **Gemma** models that run without a network.
+After that, building, testing, linting, reading docs, and reading/updating
+issues all work offline; check the mode and readiness with `make godark-check`.
+Issue changes you make while dark are queued and replayed with
+`make issues-sync` when you reconnect. Run `make online` to switch back to the
+Gemini models and re-enable the network. The remaining network-only steps —
 opening PRs, `govulncheck`'s vulnerability database, and adding new
 dependencies — are documented in `AGENTS.md`.
 
@@ -101,7 +108,8 @@ dependencies — are documented in `AGENTS.md`.
 
 1. Copy this template into a new repository.
 2. Fill in your project name in `AGENTS.md`.
-3. Run `make bootstrap` (while online) to install tools and prime the caches.
+3. Run `make tools` to install the toolchain (online/Gemini is the default;
+   run `make godark` instead when you need to go offline-ready).
 4. Give the Planner a goal (`/plan add rate limiting to the orders service`).
 5. Let the Coder work through the resulting issues (`/work`).
 6. Review and merge the pull requests (`/review`).

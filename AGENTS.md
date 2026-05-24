@@ -12,13 +12,18 @@ The Go services are **headless**: they expose gRPC and HTTP+JSON APIs and render
 - Search: `rg` (ripgrep) for content, `fd` for paths. Never `find` or `grep -r`.
 - GitHub: `gh` CLI is authenticated. Use `gh issue` and `gh pr` for all repo interactions.
 
-## Offline / disconnected work
+## Godark mode (offline work)
 
-This repo is designed so a developer can work **fully offline** (on a plane, etc.) once they have prepared while online. Run **`make bootstrap` with a network connection before going offline** — it installs the tools, warms the Go module cache and toolchain, installs `web/` deps and Playwright browsers, and populates `docs/vendor/`. Verify readiness with `make offline-check`.
+This repo has two modes, toggled with one command each:
+
+- **`make online`** (the committed default) — connected mode. Agents run on cloud models: planner and reviewer on **`google/gemini-3.1-pro`** (deep reasoning), coder and frontend on **`google/gemini-3.5-flash`** (fast implementation).
+- **`make godark`** — fully offline mode for working disconnected (on a plane, etc.). Run it **while still online**: it installs the tools, warms the Go module cache and toolchain, installs `web/` deps and Playwright browsers, populates `docs/vendor/`, and snapshots the issues — then switches agents to the local, runnable-offline **Gemma** models (planner/reviewer `google/gemma-4-31B-it`, coder/frontend `google/gemma-4-26B-A4B-it`) and forces network-dependent tooling offline.
+
+`make online` reverses the switch (restores the Gemini models, re-enables the network). Check the current mode and offline readiness with `make godark-check`. Note: `godark` edits the `model:` fields in `.opencode/agent/*.md` locally — run `make online` to restore the committed Gemini defaults before committing.
 
 **Issue operations go through `./scripts/issues.sh`, not raw `gh issue`.** The wrapper mirrors the `gh issue` subcommands (`list`, `view`, `comment`, `relabel`, `state`, `create`) but reads from a local cache and, when offline, queues writes to an append-only journal. The same commands therefore work at a desk and on a plane. Raw `gh issue` only works online and bypasses the cache — do not use it directly.
 
-**Works offline (after bootstrap):**
+**Works offline (after `make godark`):**
 - `go build`, `go vet`, `go test`, `gofmt`, `goimports`, `gopls` — backed by the warm module cache.
 - `golangci-lint`, `gosec` — purely local analysis.
 - `bun run dev|build|test` and Playwright — once deps and browsers are cached.

@@ -1,7 +1,7 @@
 ---
 name: coder
 description: Implements a single GitHub issue end-to-end. Picks up issues labeled agent:coder + status:planned.
-model: google/gemma-4-26B-A4B-it
+model: google/gemini-3.5-flash
 tools:
   read: true
   grep: true
