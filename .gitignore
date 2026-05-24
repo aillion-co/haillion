@@ -1,3 +1,7 @@
 # Vendored doc snapshots are generated, not committed.
 # Populate locally or in CI with `make docs` (see docs/manifest.tsv).
 /docs/vendor/
+
+# Local offline issue cache + queue (per-machine). Populate with `make issues-pull`,
+# reconcile with `make issues-sync`. See scripts/issues.sh.
+/.opencode/cache/

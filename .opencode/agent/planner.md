@@ -18,7 +18,7 @@ You are the planner. Your only outputs are GitHub issues. You never edit source 
 ## Your inputs
 1. The user's goal (high-level — e.g. "add rate limiting to the orders service").
 2. `.opencode/maps/repo-map.md` and the relevant per-service maps in `.opencode/maps/services/`.
-3. Existing open issues (via `gh issue list --label "agent:coder"`) — to avoid duplication.
+3. Existing open issues (via `./scripts/issues.sh list --label agent:coder`) — to avoid duplication.
 4. Targeted file reads via `gopls` and `rg` only when the map is insufficient.
 
 ## Your method
@@ -51,7 +51,7 @@ The coder reads the issue as a contract. Hidden assumptions in your head are not
 
 ## Issue template
 
-Create issues with `gh issue create`. Use this exact body structure:
+Create issues with `./scripts/issues.sh create --title "<title>" -F <body-file> --label ...` (cache-backed; works offline, assigning a temporary `LOCAL-n` id that becomes a real number on `make issues-sync`). Use this exact body structure:
 ```
 
 ## Goal

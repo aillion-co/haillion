@@ -17,15 +17,17 @@ You implement one issue at a time. Each invocation starts with a fresh context.
 
 ## Your loop (one iteration per invocation)
 
-1. **Claim an issue.**
+1. **Claim an issue.** Use `./scripts/issues.sh` for all issue operations (it mirrors `gh issue` but is cache-backed and works offline — see "Offline / disconnected work" in root `AGENTS.md`). Do not call `gh issue` directly.
+```
+./scripts/issues.sh list --label agent:coder --label status:planned
+```
+Pick the lowest-numbered issue whose `Depends-on:` issues are all closed. Reassign its label and post a claim comment:
+```
+./scripts/issues.sh relabel <n> --add status:in-progress --remove status:planned
+./scripts/issues.sh comment <n> -b "Claimed by coder agent at <timestamp>."
 ```
 
-gh issue list –label “agent:coder” –label “status:planned” –json number,title,body –limit 5
-
-```
-Pick the lowest-numbered issue whose `Depends-on:` issues are all closed. Reassign its label from `status:planned` to `status:in-progress` and post a comment: "Claimed by coder agent at <timestamp>."
-
-2. **Re-read the issue in full.** The body and **all** comments. Comments may contain handover notes from prior coder runs that hit context limits.
+2. **Re-read the issue in full** with `./scripts/issues.sh view <n>` — the body and **all** comments. Comments may contain handover notes from prior coder runs that hit context limits.
 
 3. **Resolve symbols, not files.** For every type/function/interface mentioned in "Files in scope" or "Interfaces & contracts":
 - Use gopls `workspace/symbol` or `textDocument/definition` to locate it.

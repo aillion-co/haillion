@@ -12,6 +12,28 @@ The Go services are **headless**: they expose gRPC and HTTP+JSON APIs and render
 - Search: `rg` (ripgrep) for content, `fd` for paths. Never `find` or `grep -r`.
 - GitHub: `gh` CLI is authenticated. Use `gh issue` and `gh pr` for all repo interactions.
 
+## Offline / disconnected work
+
+This repo is designed so a developer can work **fully offline** (on a plane, etc.) once they have prepared while online. Run **`make bootstrap` with a network connection before going offline** — it installs the tools, warms the Go module cache and toolchain, installs `web/` deps and Playwright browsers, and populates `docs/vendor/`. Verify readiness with `make offline-check`.
+
+**Issue operations go through `./scripts/issues.sh`, not raw `gh issue`.** The wrapper mirrors the `gh issue` subcommands (`list`, `view`, `comment`, `relabel`, `state`, `create`) but reads from a local cache and, when offline, queues writes to an append-only journal. The same commands therefore work at a desk and on a plane. Raw `gh issue` only works online and bypasses the cache — do not use it directly.
+
+**Works offline (after bootstrap):**
+- `go build`, `go vet`, `go test`, `gofmt`, `goimports`, `gopls` — backed by the warm module cache.
+- `golangci-lint`, `gosec` — purely local analysis.
+- `bun run dev|build|test` and Playwright — once deps and browsers are cached.
+- `go doc <pkg>` and the snapshots in `docs/vendor/` — version-matched references.
+- **Reading and mutating issues** via `./scripts/issues.sh` — reads hit the cache; comments, label/state changes, and new issues (assigned a temporary `LOCAL-n` id) are queued.
+- `git commit` — commit locally; push when reconnected.
+
+**Reconnecting:** run `make issues-sync` to replay the queued issue changes. Comments are append-only (always safe); label/state changes apply as deltas so concurrent edits by others survive; created issues get their real `#number` with a `LOCAL-n` → real remap. Anything that genuinely conflicts (issue closed upstream, etc.) is written to `.opencode/cache/conflicts.md` for human/planner review rather than force-applied. Check pending state any time with `make issues-status`.
+
+**Needs the network (plan around it):**
+- **Opening PRs.** `gh pr create` is not cached — implement against an issue you fetched before disconnecting, commit locally, and open the PR on reconnect. Do not begin work that depends on reading issues you have not already pulled into the cache.
+- **`govulncheck`** queries the online vulnerability database — the one proof gate you cannot run offline. Run the other gates locally and let CI be the authoritative `govulncheck` gate.
+- **`go get` / adding any dependency.** Pulling a new module or npm package needs the network; defer dependency changes until reconnected.
+- **The Go toolchain.** Ensure your installed Go is ≥ the `go` directive in `go.mod` (or build once online so the pinned toolchain is cached), otherwise Go tries to download a toolchain. `GOTOOLCHAIN=local` forces use of the installed one.
+
 ## Context discipline (read this every session)
 
 This repo is too large to fit in any model's context. Follow these rules without exception:

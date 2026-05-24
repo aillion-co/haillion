@@ -21,13 +21,17 @@ You implement one frontend issue at a time, in `web/<app>/`. Each invocation sta
 
 ## Your loop (one iteration per invocation)
 
-1. **Claim an issue.**
+1. **Claim an issue.** Use `./scripts/issues.sh` for all issue operations (it mirrors `gh issue` but is cache-backed and works offline — see "Offline / disconnected work" in root `AGENTS.md`). Do not call `gh issue` directly.
 ```
-gh issue list --label "agent:frontend" --label "status:planned" --json number,title,body --limit 5
+./scripts/issues.sh list --label agent:frontend --label status:planned
 ```
-Pick the lowest-numbered issue whose `Depends-on:` issues are all closed. Reassign its label from `status:planned` to `status:in-progress` and post a comment: "Claimed by frontend agent at <timestamp>."
+Pick the lowest-numbered issue whose `Depends-on:` issues are all closed. Reassign its label and post a claim comment:
+```
+./scripts/issues.sh relabel <n> --add status:in-progress --remove status:planned
+./scripts/issues.sh comment <n> -b "Claimed by frontend agent at <timestamp>."
+```
 
-2. **Re-read the issue in full.** The body and **all** comments. Comments may contain handover notes from prior runs that hit context limits.
+2. **Re-read the issue in full** with `./scripts/issues.sh view <n>` — the body and **all** comments. Comments may contain handover notes from prior runs that hit context limits.
 
 3. **Locate, don't load everything.** Read only the routes/components in "Files in scope". Use `rg` to find component usage and prop flow; do not `cat` the whole `web/<app>/` tree.
 
