@@ -1,6 +1,45 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
 	import DriverControls from '$lib/components/DriverControls.svelte';
+	import RatingForm from '$lib/components/RatingForm.svelte';
+
+	let completedTripId = $state<string | null>(null);
+	let lastCompletedTripRiderId = $state<string | null>(null);
+
+	onMount(() => {
+		const originalFetch = window.fetch;
+		window.fetch = async (input, init) => {
+			const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+			const response = await originalFetch(input, init);
+
+			if (url.includes('/trip/trips/') && url.includes('/complete') && init?.method === 'POST') {
+				if (response.ok) {
+					const parts = url.split('/');
+					const completeIndex = parts.indexOf('complete');
+					const tripId = completeIndex > 0 ? parts[completeIndex - 1] : null;
+					if (tripId) {
+						completedTripId = tripId;
+						try {
+							const tripRes = await originalFetch(`http://localhost:8080/api/trip/trips/${tripId}`);
+							if (tripRes.ok) {
+								const tripData = await tripRes.json();
+								lastCompletedTripRiderId = tripData.rider_id;
+							}
+						} catch (err) {
+							console.error('Failed to fetch completed trip details:', err);
+						}
+					}
+				}
+			}
+
+			return response;
+		};
+
+		return () => {
+			window.fetch = originalFetch;
+		};
+	});
 </script>
 
 <div class="mx-auto max-w-2xl space-y-6 px-4 py-8">
@@ -75,6 +114,26 @@
 				>
 					Go to Rider Dashboard
 				</a>
+			</div>
+		</div>
+	{:else if completedTripId && lastCompletedTripRiderId}
+		<div class="space-y-6">
+			<RatingForm
+				tripId={completedTripId}
+				reviewerId={$authStore.id}
+				revieweeId={lastCompletedTripRiderId}
+			/>
+			<div class="flex justify-end">
+				<button
+					onclick={() => {
+						completedTripId = null;
+						lastCompletedTripRiderId = null;
+					}}
+					data-testid="back-to-dashboard-btn"
+					class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+				>
+					Back to Dashboard
+				</button>
 			</div>
 		</div>
 	{:else}
