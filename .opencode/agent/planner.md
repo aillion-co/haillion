@@ -39,7 +39,19 @@ Weak criteria ("make it work", "add validation") force the coder to interpret. S
 - "Fix the bug in X" → "Write a test that reproduces the bug as described in #N, then make it pass."
 - "Refactor Y" → "All tests in `<pkg>/...` pass before and after; no public API changes."
 
-If you cannot phrase a criterion as a test the coder can write, the task is not ready to be an issue. Refine it or split it.
+**Phrase behavioural criteria in EARS** (Easy Approach to Requirements Syntax). Prose requirements are ambiguous; EARS forces one trigger, one response, and a clear subject, which maps almost directly onto a test case:
+
+- **Ubiquitous:** "The `<component>` shall `<response>`."
+- **Event-driven:** "When `<trigger>`, the `<component>` shall `<response>`."
+- **State-driven:** "While `<state>`, the `<component>` shall `<response>`."
+- **Unwanted behaviour:** "If `<condition>`, then the `<component>` shall `<response>`." (use this for every error path)
+- **Optional:** "Where `<feature is present>`, the `<component>` shall `<response>`."
+
+Example: "When a request exceeds the configured rate limit, the orders handler shall respond `429` with a `Retry-After` header." → one obvious table-driven test case.
+
+For criteria with many input/output combinations, use a **decision table**; for behaviour that depends on prior events, sketch a small **state machine** in "Interfaces & contracts". Each EARS line, table row, or transition should become at least one test.
+
+If you cannot phrase a criterion as an EARS line (or table row) that the coder can turn into a test, the task is not ready to be an issue. Refine it or split it.
 
 ## Surface assumptions in the issue body
 
@@ -60,9 +72,10 @@ Create issues with `./scripts/issues.sh create --title "<title>" -F <body-file> 
 
 ## Acceptance criteria
 
-- [ ] <Observable, testable condition 1>
-- [ ] <Observable, testable condition 2>
-- [ ] Tests added/updated and passing
+<EARS lines — one trigger + response each; cover every error path with an "If … then" line.>
+- [ ] When <trigger>, the <component> shall <response>.
+- [ ] If <error condition>, then the <component> shall <response>.
+- [ ] Tests added/updated and passing (one case per criterion above)
 - [ ] golangci-lint clean
 
 ## Files in scope

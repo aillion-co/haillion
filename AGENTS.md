@@ -24,6 +24,16 @@ The project can run fully offline ("godark" mode); how a developer toggles modes
 - **`govulncheck` needs the online vulnerability database** — the one proof gate you cannot run offline. Run the other gates locally and let CI be the authoritative `govulncheck` gate.
 - **Adding a dependency needs the network** (`go get`, new npm package); defer dependency changes until reconnected.
 
+## Tool access (least privilege)
+
+Each agent runs with the minimum tools its role needs, declared in `.opencode/agent/*.md` frontmatter: planner and reviewer get read-only access plus `bash` (for `gh`, `gopls`, and the `scripts/`); only the coder and frontend agents get `write`/`edit`. Do not widen these grants.
+
+Over-broad tool access is the single largest risk in an agentic setup, so:
+- **`bash` is powerful — keep it scoped** to the documented workflows (Go tooling, `./scripts/*`, `gh pr`). Do not use it to reach arbitrary network services or touch the filesystem outside the repo.
+- **Never use, request, or grant tooling that can send email, reset passwords, read mailboxes, or otherwise take over accounts.** Email/credential access is the classic account-takeover path and has no place in this loop.
+- **Secrets stay out of the loop.** Do not read, print, or commit credentials, tokens, or `.env` files. CI supplies what it needs through its own secrets; agents never need them.
+- **The GitHub surface is intentionally narrow:** issues via `./scripts/issues.sh`, pull requests via `gh pr`. Do not reach for broader `gh api` or other repo-mutating commands unless an issue explicitly requires it.
+
 ## Context discipline (read this every session)
 
 This repo is too large to fit in any model's context. Follow these rules without exception:
