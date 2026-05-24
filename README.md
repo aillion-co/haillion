@@ -1,13 +1,21 @@
-# Multi-Agent Template for Go Microservice Monorepos
+# Haillion
 
-This is a **template repository**. It doesn't contain a working application — it
-contains the *setup* that lets a team of AI agents build and review a Go
-microservices codebase safely, with humans staying in control.
+**Haillion** is an open-source, real-time private hire platform (similar to Uber). It manages riders and drivers, matches them using real-time geospatial queries, tracks trips through a state machine, and processes demand-based surge pricing and payments.
+
+This repository contains the full headless Go microservices backend and SvelteKit frontend (planned), structured to be built and maintained by a team of AI agents safely, with humans staying in control.
+
+## Architecture
+
+Haillion is composed of four core Go microservices:
+- **Identity Service (`services/identity`)**: Manages rider and driver profiles and authentication.
+- **Matching Service (`services/matching`)**: Tracks live driver locations and calculates ETAs, matching riders to drivers using geospatial queries (PostGIS).
+- **Trip Service (`services/trip`)**: Tracks trip states (Requested, Accepted, In-Progress, Completed) using a strict state machine.
+- **Billing Service (`services/billing`)**: Processes simulated payments and applies demand-based surge pricing.
 
 ## The idea in one paragraph
 
 Building software with AI works best when the work is broken into small,
-well-defined tasks and each task is handed off cleanly. This template wires up
+well-defined tasks and each task is handed off cleanly. This repository wires up
 two AI agents — a **Planner** and a **Coder** (plus an optional **Reviewer**) —
 that talk to each other through **GitHub Issues**. The Planner turns a goal like
 *"add rate limiting to the orders service"* into a set of small, checkable
@@ -112,13 +120,12 @@ told to plan around them in `AGENTS.md`.
 
 ## How to use it
 
-1. Copy this template into a new repository.
-2. Fill in your project name in `AGENTS.md`.
+1. Ensure your AI agent environment is configured correctly.
+2. The initial architecture has been seeded into GitHub Issues via the Planner.
 3. Run `make tools` to install the toolchain (online/Gemini is the default;
    run `make godark` instead when you need to go offline-ready).
-4. Give the Planner a goal (`/plan add rate limiting to the orders service`).
-5. Let the Coder work through the resulting issues (`/work`).
-6. Review and merge the pull requests (`/review`).
+4. Let the Coder work through the queued issues (`/work`).
+5. Review and merge the pull requests (`/review`).
 
 The detailed, exact instructions for each agent live in the files above — this
 README is just the overview.
