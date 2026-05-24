@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Decomposes user goals into bounded, implementable GitHub issues. Does NOT write code.
-model: google/gemini-3.1-pro
+model: opencode/gemini-3.1-pro
 tools:
   read: true
   grep: true

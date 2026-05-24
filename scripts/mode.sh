@@ -8,11 +8,11 @@
 #   status   Print the current mode and each agent's active model.
 #
 # Online (the committed default) uses cloud models:
-#   planner, reviewer  -> google/gemini-3.1-pro    (deep reasoning)
-#   coder,   frontend  -> google/gemini-3.5-flash  (fast implementation)
-# GODARK swaps in the local, runnable-offline models:
-#   planner, reviewer  -> google/gemma-4-31B-it     (dense)
-#   coder,   frontend  -> google/gemma-4-26B-A4B-it (MoE)
+#   planner, reviewer  -> opencode/gemini-3.1-pro    (deep reasoning)
+#   coder,   frontend  -> opencode/gemini-3.5-flash  (fast implementation)
+#   GODARK swaps in the local, runnable-offline models:
+#   planner, reviewer  -> opencode/gemma-4-31B-it     (dense)
+#   coder,   frontend  -> opencode/gemma-4-26B-A4B-it (MoE)
 #
 # The switch rewrites the `model:` field in .opencode/agent/*.md, sets a
 # gitignored mode marker (.opencode/cache/mode) that other scripts honour, and
@@ -32,8 +32,8 @@ MODE_FILE=".opencode/cache/mode"
 # agent -> "online_model|offline_model"
 models_for() {
   case "$1" in
-    planner|reviewer) echo "google/gemini-3.1-pro|google/gemma-4-31B-it" ;;
-    coder|frontend)   echo "google/gemini-3.5-flash|google/gemma-4-26B-A4B-it" ;;
+    planner|reviewer) echo "opencode/gemini-3.1-pro|opencode/gemma-4-31B-it" ;;
+    coder|frontend)   echo "opencode/gemini-3.5-flash|opencode/gemma-4-26B-A4B-it" ;;
     *)                echo "" ;;
   esac
 }
