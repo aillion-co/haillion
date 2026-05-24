@@ -1,0 +1,9 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+CREATE TABLE IF NOT EXISTS driver_locations (
+    driver_id UUID PRIMARY KEY,
+    geom GEOGRAPHY(Point, 4326) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_driver_locations_geom ON driver_locations USING GIST (geom);
