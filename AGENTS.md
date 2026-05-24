@@ -2,6 +2,8 @@
 
 Go microservices monorepo. Services live under `services/<name>/`, shared libs under `pkg/`, internal-only code under `internal/`. One go.mod at the root (workspace mode).
 
+The Go services are **headless**: they expose gRPC and HTTP+JSON APIs and render no HTML. User-facing UIs live under `web/<app>/` and are built with a separate toolchain (Bun + SvelteKit) by the frontend agent. See the **Frontend** section below and `.opencode/agent/frontend.md`. The rules in this file are Go-specific unless a section says otherwise.
+
 ## Tooling
 - Format: `gofmt -s -w` and `goimports -w` before any commit.
 - Lint: `golangci-lint run ./...` must pass.
@@ -148,7 +150,37 @@ No marketing language. No "this makes the code cleaner". State what changed and 
 - A service may import from `pkg/` and its own `internal/`. It may **not** import from another service's `internal/` or from another service directly.
 - Cross-service contracts live in `pkg/proto/` (protobuf) or `pkg/api/` (typed clients).
 - Database migrations live in `services/<name>/migrations/`. Never edit historic migrations.
+- A `web/<app>/` frontend may only reach the Go side over the network (its public APIs) or via a generated TypeScript client. It must never import Go source, and Go code must never import from `web/`.
+
+## Frontend (`web/`)
+
+Go services here are headless. Anything user-facing — dashboards, admin UIs, customer apps — lives under `web/<app>/` and is owned by the frontend agent (`.opencode/agent/frontend.md`). The discipline mirrors the Go side: minimal dependencies, surgical changes, every line traceable to an acceptance criterion, and literal proof-gate output in the PR.
+
+### Toolset (non-negotiable)
+- **Bun for everything.** `bun install`, `bun run <script>`, `bun test`, `bunx`. **Never `npm`, `yarn`, or `pnpm`** — no `package-lock.json` or `yarn.lock`; the committed lockfile is `bun.lock`. CI installs with `bun install --frozen-lockfile`.
+- **SvelteKit** (Svelte 5, runes) with **TypeScript in strict mode**. No React/Vue/Angular. No plain-JS app code; an `any` requires a comment justifying it.
+- **Build/dev:** Vite via SvelteKit (`bun run dev`, `bun run build`). No custom Webpack/Rollup config unless SvelteKit can't express the need.
+- **Styling:** scoped styles inside `.svelte` components, with one shared design-token layer for variables. No runtime CSS-in-JS.
+- **State:** Svelte runes and stores. No Redux/MobX/Zustand.
+- **Data:** SvelteKit `load` functions calling the Go APIs. API types come from the generated client (`pkg/api` / OpenAPI- or proto-generated TS) — do not hand-write types that duplicate the Go contract.
+- **Lint/format/typecheck:** `svelte-check` (types + templates), `eslint`, `prettier` — all run through Bun scripts.
+- **Tests:** `vitest` + `@testing-library/svelte` for units/components; Playwright for end-to-end.
+
+### Dependencies (same bar as Go)
+
+Prefer SvelteKit and platform built-ins. Add an npm dependency only when implementing it correctly ourselves is materially harder than vetting someone else's code. "More convenient" is not sufficient. Pin exact versions (no `^`/`~`); updates go through Renovate. A new direct dependency is justified in the PR description and reviewed by a human, not the reviewer agent.
+
+### Pre-PR proof gates (frontend)
+
+For any PR that touches `web/`, paste the literal output of these (run from the app dir):
+- `bun install --frozen-lockfile`
+- `bun run check`   (svelte-check / type + template check)
+- `bun run lint`
+- `bun run test`
+- `bun run build`
+
+CI re-runs these via a path-filtered workflow and is the authoritative gate. If any fail, the frontend agent does not open the PR — it posts the failing output as an issue comment, re-labels `status:blocked-replan`, and ends its turn.
 
 ## Handover protocol
 
-All work is tracked as GitHub issues. See `.opencode/agent/planner.md` and `.opencode/agent/coder.md` for role-specific rules. The issue is the single source of truth between agents.
+All work is tracked as GitHub issues. See `.opencode/agent/planner.md`, `.opencode/agent/coder.md`, and `.opencode/agent/frontend.md` for role-specific rules. The issue is the single source of truth between agents.

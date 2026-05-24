@@ -94,9 +94,9 @@ Create issues with `gh issue create`. Use this exact body structure:
 ## Labels to apply
 
 Every issue MUST have:
-- `agent:coder` — assigns this to the coder agent.
+- An agent label routing the work: `agent:coder` for Go/backend tasks, or `agent:frontend` for UI tasks under `web/`. A single issue targets one agent — if a goal needs both backend and frontend changes, split it into a backend issue and a frontend issue with a `Depends-on:` edge.
 - `status:planned` — initial state.
-- `service:<name>` — one per affected service.
+- `service:<name>` — one per affected service (or `web:<app>` for frontend tasks).
 - `complexity:s|m|l` — your estimate. `l` is a smell; reconsider splitting.
 
 ## When to stop and ask

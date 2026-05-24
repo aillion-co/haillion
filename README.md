@@ -21,20 +21,30 @@ agent's memory.
 | Agent | Job | Writes code? |
 |-------|-----|--------------|
 | **Planner** | Breaks a goal into small GitHub issues with clear acceptance criteria. | No |
-| **Coder** | Implements one issue end-to-end and opens a pull request. | Yes |
+| **Coder** | Implements one Go/backend issue end-to-end and opens a pull request. | Yes |
+| **Frontend** | Implements one UI issue end-to-end (SvelteKit + Bun) and opens a pull request. | Yes |
 | **Reviewer** | Checks a pull request against its issue; approves or requests changes. | No |
 
 Each agent works with a fresh, limited view of the repo so it never gets
 overwhelmed — it reads a compact **repo map** first and only opens the specific
 files it needs.
 
+## Backend and frontend
+
+The Go services are **headless** — they expose APIs (gRPC, HTTP+JSON) and serve
+no HTML. User-facing apps live separately under `web/<app>/` and are built with
+**SvelteKit + TypeScript**, using **Bun** as the package manager and runner
+(never npm). The Coder owns the Go side; the Frontend agent owns `web/`. The two
+only meet at the API boundary, with TypeScript types generated from the Go
+contract rather than hand-written twice.
+
 ## What's in this repo
 
 ```
 AGENTS.md                     # The rulebook every agent follows
 .opencode/
-├── agent/                    # One file per agent (planner, coder, reviewer)
-├── command/                  # Shortcuts: /plan, /work, /review, /map
+├── agent/                    # One file per agent (planner, coder, frontend, reviewer)
+├── command/                  # Shortcuts: /plan, /work, /frontend, /review, /map
 └── maps/                     # An auto-generated "map" of the codebase
 scripts/
 └── gen-repo-map.sh           # Regenerates the map from the source code
