@@ -1,0 +1,45 @@
+apiVersion: skaffold/v4beta7
+kind: Config
+metadata:
+  name: aillion
+build:
+  artifacts:
+    - image: aillion-billing
+      context: .
+      docker:
+        dockerfile: services/billing/Dockerfile
+    - image: aillion-gateway
+      context: .
+      docker:
+        dockerfile: services/gateway/Dockerfile
+    - image: aillion-identity
+      context: .
+      docker:
+        dockerfile: services/identity/Dockerfile
+    - image: aillion-matching
+      context: .
+      docker:
+        dockerfile: services/matching/Dockerfile
+    - image: aillion-notification
+      context: .
+      docker:
+        dockerfile: services/notification/Dockerfile
+    - image: aillion-review
+      context: .
+      docker:
+        dockerfile: services/review/Dockerfile
+    - image: aillion-trip
+      context: .
+      docker:
+        dockerfile: services/trip/Dockerfile
+manifests:
+  rawYaml:
+    - k8s/services/*.yaml
+deploy:
+  kubectl: {}
+portForward:
+  - resourceType: service
+    resourceName: gateway
+    namespace: aillion
+    port: 8080
+    localPort: 8080
