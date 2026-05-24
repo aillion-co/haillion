@@ -13,10 +13,10 @@ describe('Aillion Web App Shell', () => {
 		expect(layoutContent).toContain('Aillion');
 
 		// Assert navigation links
-		expect(layoutContent).toContain('href="/"');
-		expect(layoutContent).toContain('href="/rider"');
-		expect(layoutContent).toContain('href="/driver"');
-		expect(layoutContent).toContain('href="/payments"');
+		expect(layoutContent).toContain("href={resolvePath('/')}");
+		expect(layoutContent).toContain("href={resolvePath('/rider')}");
+		expect(layoutContent).toContain("href={resolvePath('/driver')}");
+		expect(layoutContent).toContain("href={resolvePath('/payments')}");
 	});
 
 	it('shall produce a bun.lock and no npm/yarn/pnpm lockfiles', () => {
