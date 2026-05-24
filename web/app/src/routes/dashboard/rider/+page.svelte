@@ -4,6 +4,8 @@
 	import { matchDriver } from '$lib/api/matching';
 	import { createTrip, getTrip } from '$lib/api/trip';
 	import TripStatus from '$lib/components/TripStatus.svelte';
+	import PaymentFlow from '$lib/components/PaymentFlow.svelte';
+	import RatingForm from '$lib/components/RatingForm.svelte';
 
 	// Mock coordinates
 	let lat = $state(37.7749);
@@ -15,6 +17,7 @@
 	let eta = $state<number | null>(null);
 	let tripState = $state<string | null>(null);
 	let errorMessage = $state<string | null>(null);
+	let paymentSucceeded = $state(false);
 
 	let pollInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -41,6 +44,7 @@
 		driverId = null;
 		eta = null;
 		tripState = null;
+		paymentSucceeded = false;
 		stopPolling();
 
 		try {
@@ -211,8 +215,25 @@
 			</div>
 
 			<!-- Status Column -->
-			<div>
+			<div class="space-y-6">
 				<TripStatus {driverId} {eta} state={tripState} {errorMessage} />
+
+				{#if activeTripId && tripState === 'completed'}
+					{#if !paymentSucceeded}
+						<PaymentFlow
+							tripId={activeTripId}
+							onPaymentSuccess={() => {
+								paymentSucceeded = true;
+							}}
+						/>
+					{:else}
+						<RatingForm
+							tripId={activeTripId}
+							reviewerId={$authStore.id}
+							revieweeId={driverId || ''}
+						/>
+					{/if}
+				{/if}
 			</div>
 		</div>
 	{/if}
