@@ -159,3 +159,34 @@ Once the platform is running locally via `skaffold run`:
    ```bash
    go test -v ./test/e2e/...
    ```
+
+### Running the Frontend UI Locally
+
+The user-facing web application is built with SvelteKit and Bun, located under `web/app/`.
+
+To test and develop the UI locally against your running cluster:
+
+1. Ensure the backend platform is running and the gateway is port-forwarded:
+   ```bash
+   skaffold run
+   kubectl port-forward svc/gateway -n haillion 8080:8080 > /dev/null 2>&1 &
+   ```
+2. Navigate to the frontend directory:
+   ```bash
+   cd web/app
+   ```
+3. Install the dependencies using Bun (do not use npm/yarn/pnpm):
+   ```bash
+   bun install --frozen-lockfile
+   ```
+4. Start the SvelteKit development server:
+   ```bash
+   bun run dev
+   ```
+5. Open your browser and navigate to `http://localhost:5173` to interact with the Haillion platform (register as a rider/driver, request trips, etc.).
+
+**Frontend Testing & Checks:**
+You can run the frontend verification checks from within the `web/app` directory:
+- Run unit and component tests: `bun run test`
+- Type-check the project: `bun run check`
+- Lint the code: `bun run lint`
