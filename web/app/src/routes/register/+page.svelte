@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { registerUser, ApiError } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
@@ -7,6 +8,11 @@
 	let role = $state<'rider' | 'driver'>('rider');
 	let loading = $state(false);
 	let errorMessage = $state('');
+	let mounted = $state(false);
+
+	onMount(() => {
+		mounted = true;
+	});
 
 	function generateUUID() {
 		if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -49,7 +55,7 @@
 			<p class="mt-2 text-sm text-gray-500">Sign up as a rider or driver to start using Aillion.</p>
 		</div>
 
-		<form onsubmit={handleSubmit} class="mt-8 space-y-6">
+		<form onsubmit={handleSubmit} method="post" class="mt-8 space-y-6">
 			{#if errorMessage}
 				<div class="rounded-lg bg-red-50 p-4 text-sm text-red-700" role="alert">
 					<div class="flex">
@@ -153,7 +159,7 @@
 
 			<button
 				type="submit"
-				disabled={loading}
+				disabled={!mounted || loading}
 				class="flex w-full items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-indigo-400"
 			>
 				{#if loading}
