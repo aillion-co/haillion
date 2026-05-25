@@ -9,6 +9,7 @@
 	import RatingForm from '$lib/components/RatingForm.svelte';
 	import FareEstimate from '$lib/components/FareEstimate.svelte';
 	import NearbyList from '$lib/components/NearbyList.svelte';
+	import NearbyMap from '$lib/components/NearbyMap.svelte';
 
 	let postcode = $state('');
 	let destinationPostcode = $state('');
@@ -25,6 +26,35 @@
 
 	let nearbyDriversList = $state<NearbyDriver[]>([]);
 	let nearbyDriversStatus = $state<'loading' | 'ok' | 'empty' | 'error' | 'idle'>('idle');
+
+	const riderMapData = $derived.by(() => {
+		if (nearbyDriversList.length === 0) return null;
+
+		let latSum = 0;
+		let lngSum = 0;
+		for (const d of nearbyDriversList) {
+			latSum += d.lat;
+			lngSum += d.lng;
+		}
+		const centerLat = latSum / nearbyDriversList.length;
+		const centerLng = lngSum / nearbyDriversList.length;
+
+		return {
+			center: { lat: centerLat, lng: centerLng },
+			you: {
+				id: 'rider-you',
+				lat: centerLat,
+				lng: centerLng,
+				label: 'Your pickup location (approx)'
+			},
+			others: nearbyDriversList.map((d) => ({
+				id: d.driver_id,
+				lat: d.lat,
+				lng: d.lng,
+				label: `Driver ${d.driver_id.substring(0, 4)} (${(d.distance_m / 1609.34).toFixed(1)} mi)`
+			}))
+		};
+	});
 
 	$effect(() => {
 		const isPending = activeTripId && (tripState === 'requested' || tripState === 'accepted');
@@ -272,6 +302,14 @@
 					items={nearbyDriversList.map((d) => ({ id: d.driver_id, distanceMeters: d.distance_m }))}
 					status={nearbyDriversStatus}
 				/>
+
+				{#if riderMapData}
+					<NearbyMap
+						center={riderMapData.center}
+						you={riderMapData.you}
+						others={riderMapData.others}
+					/>
+				{/if}
 
 				<FareEstimate
 					pickup={postcode}

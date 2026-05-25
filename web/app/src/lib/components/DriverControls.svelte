@@ -8,6 +8,7 @@
 	} from '$lib/api/matching';
 	import { acceptTrip, startTrip, completeTrip } from '$lib/api/trip';
 	import NearbyList from '$lib/components/NearbyList.svelte';
+	import NearbyMap from '$lib/components/NearbyMap.svelte';
 
 	interface Props {
 		driverId: string;
@@ -29,6 +30,35 @@
 
 	let nearbyRidersList = $state<NearbyRider[]>([]);
 	let nearbyRidersStatus = $state<'loading' | 'ok' | 'empty' | 'error' | 'idle'>('idle');
+
+	const driverMapData = $derived.by(() => {
+		if (nearbyRidersList.length === 0) return null;
+
+		let latSum = 0;
+		let lngSum = 0;
+		for (const r of nearbyRidersList) {
+			latSum += r.lat;
+			lngSum += r.lng;
+		}
+		const centerLat = latSum / nearbyRidersList.length;
+		const centerLng = lngSum / nearbyRidersList.length;
+
+		return {
+			center: { lat: centerLat, lng: centerLng },
+			you: {
+				id: 'driver-you',
+				lat: centerLat,
+				lng: centerLng,
+				label: 'Your location (approx)'
+			},
+			others: nearbyRidersList.map((r) => ({
+				id: r.rider_id,
+				lat: r.lat,
+				lng: r.lng,
+				label: `Rider ${r.rider_id.substring(0, 4)} (${(r.distance_m / 1609.34).toFixed(1)} mi)`
+			}))
+		};
+	});
 
 	$effect(() => {
 		if (!isOnline) {
@@ -272,6 +302,14 @@
 		items={nearbyRidersList.map((r) => ({ id: r.rider_id, distanceMeters: r.distance_m }))}
 		status={nearbyRidersStatus}
 	/>
+
+	{#if driverMapData}
+		<NearbyMap
+			center={driverMapData.center}
+			you={driverMapData.you}
+			others={driverMapData.others}
+		/>
+	{/if}
 
 	<!-- Active Trip Management -->
 	<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
