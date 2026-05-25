@@ -6,8 +6,10 @@
 	import TripStatus from '$lib/components/TripStatus.svelte';
 	import PaymentFlow from '$lib/components/PaymentFlow.svelte';
 	import RatingForm from '$lib/components/RatingForm.svelte';
+	import FareEstimate from '$lib/components/FareEstimate.svelte';
 
 	let postcode = $state('');
+	let destinationPostcode = $state('');
 
 	let loading = $state(false);
 	let activeTripId = $state<string | null>(null);
@@ -148,61 +150,83 @@
 		</div>
 	{:else}
 		<div class="grid gap-6 md:grid-cols-2">
-			<!-- Controls Card -->
-			<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
-				<h2 class="text-xl font-bold text-gray-900">Request a Ride</h2>
-				<p class="mt-1 text-xs text-gray-500">Enter your postcode to match with local drivers.</p>
+			<div class="space-y-6">
+				<!-- Controls Card -->
+				<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
+					<h2 class="text-xl font-bold text-gray-900">Request a Ride</h2>
+					<p class="mt-1 text-xs text-gray-500">Enter your postcode to match with local drivers.</p>
 
-				<div class="mt-6 space-y-4">
-					<div>
-						<label
-							for="pickup-postcode"
-							class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
-							>Pickup postcode</label
-						>
-						<input
-							type="text"
-							id="pickup-postcode"
-							placeholder="e.g. SW1A 1AA"
-							bind:value={postcode}
-							disabled={loading || !!activeTripId}
-							class="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
-						/>
-					</div>
-
-					<button
-						onclick={handleRequestRide}
-						disabled={loading || !postcode.trim() || (!!activeTripId && tripState !== 'completed')}
-						data-testid="request-ride-btn"
-						class="flex w-full items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-indigo-400"
-					>
-						{#if loading}
-							<svg
-								class="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
-								xmlns="http://www.w3.org/2000/svg"
-								fill="none"
-								viewBox="0 0 24 24"
+					<div class="mt-6 space-y-4">
+						<div>
+							<label
+								for="pickup-postcode"
+								class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
+								>Pickup postcode</label
 							>
-								<circle
-									class="opacity-25"
-									cx="12"
-									cy="12"
-									r="10"
-									stroke="currentColor"
-									stroke-width="4"
-								></circle>
-								<path
-									class="opacity-75"
-									fill="currentColor"
-									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-								></path>
-							</svg>
-							Matching Driver...
-						{:else}
-							Request Ride
-						{/if}
-					</button>
+							<input
+								type="text"
+								id="pickup-postcode"
+								placeholder="e.g. SW1A 1AA"
+								bind:value={postcode}
+								disabled={loading || !!activeTripId}
+								class="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="destination-postcode"
+								class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
+								>Destination postcode</label
+							>
+							<input
+								type="text"
+								id="destination-postcode"
+								placeholder="e.g. EC1A 1BB"
+								bind:value={destinationPostcode}
+								disabled={loading || !!activeTripId}
+								class="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
+							/>
+						</div>
+
+						<button
+							onclick={handleRequestRide}
+							disabled={loading ||
+								!postcode.trim() ||
+								(!!activeTripId && tripState !== 'completed')}
+							data-testid="request-ride-btn"
+							class="flex w-full items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-indigo-400"
+						>
+							{#if loading}
+								<svg
+									class="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
+									xmlns="http://www.w3.org/2000/svg"
+									fill="none"
+									viewBox="0 0 24 24"
+								>
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+									></circle>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									></path>
+								</svg>
+								Matching Driver...
+							{:else}
+								Request Ride
+							{/if}
+						</button>
+					</div>
 				</div>
+
+				<FareEstimate pickup={postcode} destination={destinationPostcode} riders={0} drivers={0} />
 			</div>
 
 			<!-- Status Column -->
