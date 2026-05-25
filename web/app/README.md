@@ -1,42 +1,54 @@
-# sv
+# Haillion Web App
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+The user-facing web application for the Haillion private-hire platform. It is a
+[SvelteKit](https://svelte.dev/docs/kit) + TypeScript app styled with
+[Tailwind CSS](https://tailwindcss.com/), built and run with
+[Bun](https://bun.com/) (never npm/yarn/pnpm). In production it is served behind
+the API gateway at `/`, talking to the backend services under `/api/*`.
 
-## Creating a project
+## What's here
 
-If you're seeing this, you've probably already done this step. Congrats!
+- `src/routes/` — pages: the landing page (`/`), `register`, and the
+  `dashboard/rider` and `dashboard/driver` views.
+- `src/lib/api/` — typed clients for the identity, matching, trip, billing, and
+  review endpoints.
+- `src/lib/components/` — UI building blocks (fare estimate, nearby list and
+  map, payment flow, rating form, trip status, driver controls).
+- `src/lib/stores/` — Svelte stores, including auth state.
 
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-bun x sv@0.15.3 create --template minimal --types ts --add prettier eslint vitest="usages:unit" tailwindcss="plugins:none" --install bun web/app
-```
+Live driver/rider maps are rendered with [Leaflet](https://leafletjs.com/), and
+the app is packaged with `svelte-adapter-bun`.
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Install dependencies with Bun, then start the dev server:
 
 ```sh
-npm run dev
+bun install --frozen-lockfile
+bun run dev
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+# or open the app in a new browser tab
+bun run dev -- --open
 ```
+
+The dev server runs at `http://localhost:5173`. The backend it calls is expected
+on the gateway at `http://localhost:8080` — see the repository root `README.md`
+for how to bring the platform up locally with Skaffold.
 
 ## Building
 
-To create a production version of your app:
+Create a production build and preview it:
 
 ```sh
-npm run build
+bun run build
+bun run preview
 ```
 
-You can preview the production build with `npm run preview`.
+## Checks
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```sh
+bun run test    # unit and component tests (Vitest)
+bun run check   # type-check with svelte-check
+bun run lint    # Prettier + ESLint
+bun run format  # apply Prettier formatting
+```

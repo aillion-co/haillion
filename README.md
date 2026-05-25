@@ -2,15 +2,24 @@
 
 **Haillion** is an open-source, real-time private hire platform (similar to Uber). It manages riders and drivers, matches them using real-time geospatial queries, tracks trips through a state machine, and processes demand-based surge pricing and payments.
 
-This repository contains the full headless Go microservices backend and SvelteKit frontend (planned), structured to be built and maintained by a team of AI agents safely, with humans staying in control.
+This repository contains the full headless Go microservices backend and a SvelteKit frontend, structured to be built and maintained by a team of AI agents safely, with humans staying in control.
 
 ## Architecture
 
-Haillion is composed of four core Go microservices:
+Haillion is composed of these Go microservices:
 - **Identity Service (`services/identity`)**: Manages rider and driver profiles and authentication.
-- **Matching Service (`services/matching`)**: Tracks live driver locations and calculates ETAs, matching riders to drivers using geospatial queries (PostGIS).
+- **Matching Service (`services/matching`)**: Tracks live driver locations and calculates ETAs, matching riders to drivers using geospatial queries (PostGIS), with UK postcode lookup for human-friendly locations.
 - **Trip Service (`services/trip`)**: Tracks trip states (Requested, Accepted, In-Progress, Completed) using a strict state machine.
-- **Billing Service (`services/billing`)**: Processes simulated payments and applies demand-based surge pricing.
+- **Billing Service (`services/billing`)**: Processes simulated payments, estimates fares, and applies demand-based surge pricing.
+- **Review Service (`services/review`)**: Stores post-trip ratings and reviews between riders and drivers.
+- **Notification Service (`services/notification`)**: Pushes real-time updates to clients over Server-Sent Events (SSE).
+- **API Gateway (`services/gateway`)**: Single entry point that reverse-proxies the backend services under `/api/*` and serves the frontend at `/`.
+
+Shared Go libraries live under `pkg/`:
+- **`pkg/api`**: Typed HTTP clients for the matching and billing endpoints.
+- **`pkg/geocode`**: Offline UK postcode-district lookup and Haversine distance calculation.
+
+The user-facing web app (`web/app`) is a SvelteKit + TypeScript application served through the gateway.
 
 ## The idea in one paragraph
 
@@ -52,23 +61,28 @@ contract rather than hand-written twice.
 AGENTS.md                     # The rulebook every agent follows
 .opencode/
 ├── agents/                    # One file per agent (boss, coder, frontend, reviewer)
-├── command/                  # Shortcuts: /plan, /work, /frontend, /review, /map
+├── command/                  # Shortcuts: /plan, /work, /frontend, /review, /map, /docs
 └── maps/                     # An auto-generated "map" of the codebase
 scripts/
-└── gen-repo-map.sh           # Regenerates the map from the source code
+├── gen-repo-map.sh          # Regenerates the map from the source code
+├── gen-docs.sh              # Vendors product/reference docs for offline use
+├── issues.sh                # Snapshots/replays GitHub issues for godark mode
+└── mode.sh                  # Switches agents between online and godark models
 .github/workflows/
-└── security.yml              # Automated security checks on every pull request
+└── security.yml             # Automated security checks on every pull request
 ```
 
 - **`AGENTS.md`** — the shared rulebook: coding conventions, what tools to use,
   how to keep changes small, and how to prove work is correct.
 - **`.opencode/agents/`** — the instructions and model assignment for each agent.
 - **`.opencode/command/`** — slash-command shortcuts that start an agent on a
-  task (`/plan`, `/work`, `/review`, `/map`).
+  task (`/plan`, `/work`, `/frontend`, `/review`, `/map`, `/docs`).
 - **`.opencode/maps/`** — a short, auto-generated summary of the codebase so
   agents can navigate without reading everything.
-- **`scripts/gen-repo-map.sh`** — rebuilds that map deterministically; run it
-  after merges (also wired to the `/map` command).
+- **`scripts/`** — supporting automation: `gen-repo-map.sh` rebuilds the map
+  deterministically (wired to `/map`), `gen-docs.sh` vendors reference docs,
+  `issues.sh` snapshots and replays GitHub issues for offline work, and
+  `mode.sh` flips agents between the online and godark models.
 - **`.github/workflows/security.yml`** — the automated gate that re-runs build,
   vet, security, and vulnerability checks on every pull request.
 
