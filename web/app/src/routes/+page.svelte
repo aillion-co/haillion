@@ -21,13 +21,13 @@
 			</p>
 			<div class="flex flex-wrap gap-4 pt-4">
 				<a
-					href={resolvePath('/rider')}
+					href={resolvePath('/dashboard/rider')}
 					class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-base font-semibold text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
 				>
 					Request a Trip
 				</a>
 				<a
-					href={resolvePath('/driver')}
+					href={resolvePath('/dashboard/driver')}
 					class="inline-flex items-center justify-center rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-white/20"
 				>
 					Driver Dashboard

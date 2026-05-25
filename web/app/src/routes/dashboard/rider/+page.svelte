@@ -1,15 +1,18 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
-	import { matchDriver } from '$lib/api/matching';
+	import { matchDriver, requestRide, ApiError } from '$lib/api/matching';
+	import { nearbyDrivers, type NearbyDriver } from '$lib/api/matching';
 	import { createTrip, getTrip } from '$lib/api/trip';
 	import TripStatus from '$lib/components/TripStatus.svelte';
 	import PaymentFlow from '$lib/components/PaymentFlow.svelte';
 	import RatingForm from '$lib/components/RatingForm.svelte';
+	import FareEstimate from '$lib/components/FareEstimate.svelte';
+	import NearbyList from '$lib/components/NearbyList.svelte';
+	import NearbyMap from '$lib/components/NearbyMap.svelte';
 
-	// Mock coordinates
-	let lat = $state(37.7749);
-	let lng = $state(-122.4194);
+	let postcode = $state('');
+	let destinationPostcode = $state('');
 
 	let loading = $state(false);
 	let activeTripId = $state<string | null>(null);
@@ -20,6 +23,74 @@
 	let paymentSucceeded = $state(false);
 
 	let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+	let nearbyDriversList = $state<NearbyDriver[]>([]);
+	let nearbyDriversStatus = $state<'loading' | 'ok' | 'empty' | 'error' | 'idle'>('idle');
+
+	const riderMapData = $derived.by(() => {
+		if (nearbyDriversList.length === 0) return null;
+
+		let latSum = 0;
+		let lngSum = 0;
+		for (const d of nearbyDriversList) {
+			latSum += d.lat;
+			lngSum += d.lng;
+		}
+		const centerLat = latSum / nearbyDriversList.length;
+		const centerLng = lngSum / nearbyDriversList.length;
+
+		return {
+			center: { lat: centerLat, lng: centerLng },
+			you: {
+				id: 'rider-you',
+				lat: centerLat,
+				lng: centerLng,
+				label: 'Your pickup location (approx)'
+			},
+			others: nearbyDriversList.map((d) => ({
+				id: d.driver_id,
+				lat: d.lat,
+				lng: d.lng,
+				label: `Driver ${d.driver_id.substring(0, 4)} (${(d.distance_m / 1609.34).toFixed(1)} mi)`
+			}))
+		};
+	});
+
+	$effect(() => {
+		const isPending = activeTripId && (tripState === 'requested' || tripState === 'accepted');
+
+		if (!isPending) {
+			nearbyDriversStatus = 'idle';
+			nearbyDriversList = [];
+			return;
+		}
+
+		nearbyDriversStatus = 'loading';
+
+		async function fetchNearby() {
+			if (!$authStore) return;
+			try {
+				const list = await nearbyDrivers($authStore.id);
+				nearbyDriversList = list;
+				nearbyDriversStatus = list.length === 0 ? 'empty' : 'ok';
+			} catch (err) {
+				if (err instanceof ApiError && err.status === 404) {
+					nearbyDriversStatus = 'idle';
+					nearbyDriversList = [];
+				} else {
+					nearbyDriversStatus = 'error';
+				}
+			}
+		}
+
+		fetchNearby();
+
+		const interval = setInterval(fetchNearby, 5000);
+
+		return () => {
+			clearInterval(interval);
+		};
+	});
 
 	function stopPolling() {
 		if (pollInterval) {
@@ -47,28 +118,32 @@
 		paymentSucceeded = false;
 		stopPolling();
 
+		const normalisedPostcode = postcode.trim().toUpperCase();
+
 		try {
-			// 1. POST to matching API
+			// 1. POST to riders request API
+			await requestRide($authStore.id, { postcode: normalisedPostcode });
+
+			// 2. POST to matching API
 			const matchResponse = await matchDriver({
 				rider_id: $authStore.id,
-				lat,
-				lng
+				postcode: normalisedPostcode
 			});
 
 			driverId = matchResponse.driver_id;
 			eta = matchResponse.eta_seconds;
 
-			// 2. POST to trip creation API
+			// 3. POST to trip creation API
 			const tripResponse = await createTrip({
 				rider_id: $authStore.id,
-				lat,
-				lng
+				lat: 37.7749,
+				lng: -122.4194
 			});
 
 			activeTripId = tripResponse.id;
 			tripState = tripResponse.state;
 
-			// 3. Start polling trip status
+			// 4. Start polling trip status
 			pollInterval = setInterval(async () => {
 				if (!activeTripId) return;
 				try {
@@ -86,8 +161,15 @@
 				}
 			}, 3000);
 		} catch (err) {
-			// "If the match API call fails, then the component shall display a "No drivers available" error."
-			errorMessage = 'No drivers available';
+			if (
+				err instanceof ApiError &&
+				err.status === 400 &&
+				(err.message === 'invalid postcode' || err.message === 'postcode not found')
+			) {
+				errorMessage = err.message;
+			} else {
+				errorMessage = 'No drivers available';
+			}
 			console.error(err);
 		} finally {
 			loading = false;
@@ -139,79 +221,102 @@
 		</div>
 	{:else}
 		<div class="grid gap-6 md:grid-cols-2">
-			<!-- Controls Card -->
-			<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
-				<h2 class="text-xl font-bold text-gray-900">Request a Ride</h2>
-				<p class="mt-1 text-xs text-gray-500">
-					Set coordinates or use defaults to match with local drivers.
-				</p>
+			<div class="space-y-6">
+				<!-- Controls Card -->
+				<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
+					<h2 class="text-xl font-bold text-gray-900">Request a Ride</h2>
+					<p class="mt-1 text-xs text-gray-500">Enter your postcode to match with local drivers.</p>
 
-				<div class="mt-6 space-y-4">
-					<div>
-						<label
-							for="latitude"
-							class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
-							>Latitude</label
-						>
-						<input
-							type="number"
-							id="latitude"
-							step="0.0001"
-							bind:value={lat}
-							disabled={loading || !!activeTripId}
-							class="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
-						/>
-					</div>
-
-					<div>
-						<label
-							for="longitude"
-							class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
-							>Longitude</label
-						>
-						<input
-							type="number"
-							id="longitude"
-							step="0.0001"
-							bind:value={lng}
-							disabled={loading || !!activeTripId}
-							class="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
-						/>
-					</div>
-
-					<button
-						onclick={handleRequestRide}
-						disabled={loading || (!!activeTripId && tripState !== 'completed')}
-						data-testid="request-ride-btn"
-						class="flex w-full items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-indigo-400"
-					>
-						{#if loading}
-							<svg
-								class="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
-								xmlns="http://www.w3.org/2000/svg"
-								fill="none"
-								viewBox="0 0 24 24"
+					<div class="mt-6 space-y-4">
+						<div>
+							<label
+								for="pickup-postcode"
+								class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
+								>Pickup postcode</label
 							>
-								<circle
-									class="opacity-25"
-									cx="12"
-									cy="12"
-									r="10"
-									stroke="currentColor"
-									stroke-width="4"
-								></circle>
-								<path
-									class="opacity-75"
-									fill="currentColor"
-									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-								></path>
-							</svg>
-							Matching Driver...
-						{:else}
-							Request Ride
-						{/if}
-					</button>
+							<input
+								type="text"
+								id="pickup-postcode"
+								placeholder="e.g. SW1A 1AA"
+								bind:value={postcode}
+								disabled={loading || !!activeTripId}
+								class="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
+							/>
+						</div>
+
+						<div>
+							<label
+								for="destination-postcode"
+								class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
+								>Destination postcode</label
+							>
+							<input
+								type="text"
+								id="destination-postcode"
+								placeholder="e.g. EC1A 1BB"
+								bind:value={destinationPostcode}
+								disabled={loading || !!activeTripId}
+								class="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
+							/>
+						</div>
+
+						<button
+							onclick={handleRequestRide}
+							disabled={loading ||
+								!postcode.trim() ||
+								(!!activeTripId && tripState !== 'completed')}
+							data-testid="request-ride-btn"
+							class="flex w-full items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-indigo-400"
+						>
+							{#if loading}
+								<svg
+									class="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
+									xmlns="http://www.w3.org/2000/svg"
+									fill="none"
+									viewBox="0 0 24 24"
+								>
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+									></circle>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									></path>
+								</svg>
+								Matching Driver...
+							{:else}
+								Request Ride
+							{/if}
+						</button>
+					</div>
 				</div>
+
+				<NearbyList
+					kind="driver"
+					items={nearbyDriversList.map((d) => ({ id: d.driver_id, distanceMeters: d.distance_m }))}
+					status={nearbyDriversStatus}
+				/>
+
+				{#if riderMapData}
+					<NearbyMap
+						center={riderMapData.center}
+						you={riderMapData.you}
+						others={riderMapData.others}
+					/>
+				{/if}
+
+				<FareEstimate
+					pickup={postcode}
+					destination={destinationPostcode}
+					riders={Math.max(1, nearbyDriversList.length)}
+					drivers={Math.max(1, nearbyDriversList.length)}
+				/>
 			</div>
 
 			<!-- Status Column -->

@@ -19,8 +19,10 @@ type Config struct {
 }
 
 func NewClient(cfg Config) *Client {
+	b, _ := billing.NewClient(cfg.BillingURL, cfg.HTTPClient)
+	m, _ := matching.NewClient(cfg.MatchingURL, cfg.HTTPClient)
 	return &Client{
-		Billing:  billing.NewClient(cfg.BillingURL, cfg.HTTPClient),
-		Matching: matching.NewClient(cfg.MatchingURL, cfg.HTTPClient),
+		Billing:  b,
+		Matching: m,
 	}
 }

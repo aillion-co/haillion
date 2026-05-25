@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"testing"
 
@@ -26,14 +27,41 @@ type UserResponse struct {
 }
 
 type UpdateLocationRequest struct {
-	Lat float64 `json:"lat"`
-	Lng float64 `json:"lng"`
+	Lat      *float64 `json:"lat,omitempty"`
+	Lng      *float64 `json:"lng,omitempty"`
+	Postcode string   `json:"postcode,omitempty"`
 }
 
 type MatchRequest struct {
-	RiderID string  `json:"rider_id"`
-	Lat     float64 `json:"lat"`
-	Lng     float64 `json:"lng"`
+	RiderID  string   `json:"rider_id"`
+	Lat      *float64 `json:"lat,omitempty"`
+	Lng      *float64 `json:"lng,omitempty"`
+	Postcode string   `json:"postcode,omitempty"`
+}
+
+type RiderRequest struct {
+	Lat      *float64 `json:"lat,omitempty"`
+	Lng      *float64 `json:"lng,omitempty"`
+	Postcode string   `json:"postcode,omitempty"`
+}
+
+type NearbyRiderJSON struct {
+	RiderID   string  `json:"rider_id"`
+	Lat       float64 `json:"lat"`
+	Lng       float64 `json:"lng"`
+	DistanceM float64 `json:"distance_m"`
+}
+
+type NearbyRidersResponse struct {
+	Riders []NearbyRiderJSON `json:"riders"`
+}
+
+type FareBreakdown struct {
+	DistanceMiles   float64 `json:"distance_miles"`
+	BasePence       int64   `json:"base_pence"`
+	SurgeMultiplier float64 `json:"surge_multiplier"`
+	TotalPence      int64   `json:"total_pence"`
+	MinimumApplied  bool    `json:"minimum_applied"`
 }
 
 type MatchResponse struct {
@@ -109,11 +137,9 @@ func TestE2E_PlatformJourney(t *testing.T) {
 	var tripID string
 	var paymentID string
 
-	// Coordinates for matching (randomized per run to isolate from prior tests)
-	// 0.1 degree is ~11km. An offset up to 5 degrees guarantees isolation (> 5km matching radius).
-	rOffset := float64(uuid.New().ID()%100) * 0.05
-	testLat := 30.0 + rOffset
-	testLng := -100.0 + rOffset
+	// Coordinates for matching (set to EC1A centroid since postcode matching places Rider at EC1A)
+	testLat := 51.5202
+	testLng := -0.104412
 
 	// 1. Register Rider
 	t.Run("RegisterRider", func(t *testing.T) {
@@ -147,23 +173,80 @@ func TestE2E_PlatformJourney(t *testing.T) {
 		assert.Equal(t, "driver", resp.Role)
 	})
 
+	// 2b. Fare Estimate
+	t.Run("FareEstimate", func(t *testing.T) {
+		var fareResp FareBreakdown
+		code, err := client.Request(ctx, "GET", "/api/billing/fare/estimate?from=SW1A&to=EC1A&riders=1&drivers=1", nil, nil, &fareResp)
+		require.NoError(t, err, "failed to get fare estimate")
+		assert.Equal(t, 200, code)
+
+		// Asserts distance_miles is within 0.5 of ~2 mi (London Westminster ↔ Clerkenwell)
+		assert.InDelta(t, 2.0, fareResp.DistanceMiles, 0.5)
+		assert.Equal(t, 1.0, fareResp.SurgeMultiplier)
+
+		expectedTotalPence := int64(math.Round(fareResp.DistanceMiles * 100))
+		if expectedTotalPence < 250 {
+			expectedTotalPence = 250
+		}
+		assert.Equal(t, expectedTotalPence, fareResp.TotalPence)
+
+		// Call again with riders=10&drivers=2
+		var fareResp2 FareBreakdown
+		code2, err2 := client.Request(ctx, "GET", "/api/billing/fare/estimate?from=SW1A&to=EC1A&riders=10&drivers=2", nil, nil, &fareResp2)
+		require.NoError(t, err2, "failed to get surged fare estimate")
+		assert.Equal(t, 200, code2)
+
+		assert.Greater(t, fareResp2.SurgeMultiplier, 1.0)
+		assert.Greater(t, fareResp2.TotalPence, fareResp2.BasePence)
+	})
+
 	// 3. Driver Updates Location
 	t.Run("DriverUpdatesLocation", func(t *testing.T) {
 		reqBody := UpdateLocationRequest{
-			Lat: testLat,
-			Lng: testLng,
+			Postcode: "SW1A",
 		}
 		code, err := client.Request(ctx, "POST", fmt.Sprintf("/api/matching/drivers/%s/location", driverID), nil, reqBody, nil)
 		require.NoError(t, err, "failed to update driver location")
 		assert.Equal(t, 200, code, "expected HTTP 200 OK for driver location update")
 	})
 
+	// 3b. Nearby Riders
+	t.Run("NearbyRiders", func(t *testing.T) {
+		// 1. Post Rider Request at EC1A
+		riderReq := RiderRequest{
+			Postcode: "EC1A",
+		}
+		code, err := client.Request(ctx, "POST", fmt.Sprintf("/api/matching/riders/%s/request", riderID), nil, riderReq, nil)
+		require.NoError(t, err, "failed to request rider match")
+		assert.Equal(t, 200, code, "expected HTTP 200 OK for rider match request")
+
+		// 2. Query Nearby Riders for Driver
+		var nearbyResp NearbyRidersResponse
+		code, err = client.Request(ctx, "GET", fmt.Sprintf("/api/matching/drivers/%s/nearby-riders", driverID), nil, nil, &nearbyResp)
+		require.NoError(t, err, "failed to get nearby riders")
+		assert.Equal(t, 200, code, "expected HTTP 200 OK for nearby riders query")
+
+		// 3. Assert Rider Appears in the response
+		found := false
+		for _, r := range nearbyResp.Riders {
+			if r.RiderID == riderID {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "expected rider %s to be in nearby riders list", riderID)
+
+		// 4. Cancel Rider Request to clean up state
+		code, err = client.Request(ctx, "DELETE", fmt.Sprintf("/api/matching/riders/%s/request", riderID), nil, nil, nil)
+		require.NoError(t, err, "failed to cancel rider request")
+		assert.Equal(t, 204, code, "expected HTTP 204 No Content for rider cancel")
+	})
+
 	// 4. Request Driver Match
 	t.Run("RequestDriverMatch", func(t *testing.T) {
 		reqBody := MatchRequest{
-			RiderID: riderID,
-			Lat:     testLat,
-			Lng:     testLng,
+			RiderID:  riderID,
+			Postcode: "EC1A",
 		}
 		var resp MatchResponse
 		code, err := client.Request(ctx, "POST", "/api/matching/match", nil, reqBody, &resp)

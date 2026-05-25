@@ -54,6 +54,15 @@ data:
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT idx_reviews_trip_reviewer UNIQUE (trip_id, reviewer_id)
     );
+
+  06-matching-pending-riders.sql: |
+    CREATE TABLE IF NOT EXISTS pending_riders (
+        rider_id TEXT PRIMARY KEY,
+        geom GEOGRAPHY(POINT, 4326) NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS pending_riders_geom_idx ON pending_riders USING GIST (geom);
 ---
 apiVersion: v1
 kind: Service

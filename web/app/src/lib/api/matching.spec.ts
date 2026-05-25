@@ -1,7 +1,15 @@
 // Verified: properly imports vi, describe, it, expect, beforeEach, afterEach from vitest
 // Verified: mock fetch calls correctly intercept API requests without throwing undefined errors
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { matchDriver, updateDriverLocation, ApiError } from './matching';
+import {
+	matchDriver,
+	updateDriverLocation,
+	requestRide,
+	cancelRide,
+	ApiError,
+	nearbyDrivers,
+	nearbyRiders
+} from './matching';
 import { createTrip, getTrip, acceptTrip, startTrip, completeTrip } from './trip';
 
 describe('Rider Matching & Trip API tests', () => {
@@ -115,7 +123,7 @@ describe('Rider Matching & Trip API tests', () => {
 		const fetchMock = vi.fn().mockResolvedValue({
 			ok: false,
 			status: 500,
-			json: async () => ({ error: 'No drivers available' })
+			text: async () => 'No drivers available'
 		});
 		vi.stubGlobal('fetch', fetchMock);
 
@@ -273,5 +281,135 @@ describe('Rider Matching & Trip API tests', () => {
 
 		clearInterval(interval);
 		vi.useRealTimers();
+	});
+
+	it('12. When matchDriver is called with postcode only, it shall POST to /api/matching/match with postcode', async () => {
+		const mockResponse = { driver_id: 'driver-456', eta_seconds: 300 };
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			status: 200,
+			json: async () => mockResponse
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		const result = await matchDriver({
+			rider_id: mockRiderId,
+			postcode: 'SW1A'
+		});
+
+		expect(fetchMock).toHaveBeenCalledWith('/api/matching/match', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				rider_id: mockRiderId,
+				postcode: 'SW1A'
+			})
+		});
+		expect(result).toEqual(mockResponse);
+	});
+
+	it('13. When updateDriverLocation is called with postcode only, it shall POST to /api/matching/drivers/{id}/location with postcode', async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			status: 200
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		await updateDriverLocation(mockDriverId, { postcode: 'SW1A' });
+
+		expect(fetchMock).toHaveBeenCalledWith(`/api/matching/drivers/${mockDriverId}/location`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				postcode: 'SW1A'
+			})
+		});
+	});
+
+	it('14. When requestRide is called, it shall POST to /api/matching/riders/{id}/request with postcode', async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			status: 200
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		await requestRide(mockRiderId, { postcode: 'SW1A' });
+
+		expect(fetchMock).toHaveBeenCalledWith(`/api/matching/riders/${mockRiderId}/request`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				postcode: 'SW1A'
+			})
+		});
+	});
+
+	it('15. When cancelRide is called, it shall POST to /api/matching/riders/{id}/cancel', async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			status: 200
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		await cancelRide(mockRiderId);
+
+		expect(fetchMock).toHaveBeenCalledWith(`/api/matching/riders/${mockRiderId}/cancel`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+	});
+
+	it('16. When nearbyDrivers is called, it shall GET /api/matching/riders/{id}/nearby-drivers', async () => {
+		const mockDrivers = [{ driver_id: 'driver-1', lat: 10, lng: 20, distance_m: 100 }];
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			status: 200,
+			json: async () => ({ drivers: mockDrivers })
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		const result = await nearbyDrivers(mockRiderId, 3000);
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			`/api/matching/riders/${mockRiderId}/nearby-drivers?radius_m=3000`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			}
+		);
+		expect(result).toEqual(mockDrivers);
+	});
+
+	it('17. When nearbyRiders is called, it shall GET /api/matching/drivers/{id}/nearby-riders', async () => {
+		const mockRiders = [{ rider_id: 'rider-1', lat: 10, lng: 20, distance_m: 100 }];
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			status: 200,
+			json: async () => ({ riders: mockRiders })
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		const result = await nearbyRiders(mockDriverId);
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			`/api/matching/drivers/${mockDriverId}/nearby-riders?radius_m=5000`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			}
+		);
+		expect(result).toEqual(mockRiders);
 	});
 });
