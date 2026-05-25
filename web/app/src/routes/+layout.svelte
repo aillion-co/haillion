@@ -46,19 +46,19 @@
 						>Dashboard</a
 					>
 					<a
-						href={resolvePath('/rider')}
+						href={resolvePath('/dashboard/rider')}
 						class="text-sm font-medium text-gray-500 transition-colors hover:text-indigo-600"
 						>Rider</a
 					>
 					<a
-						href={resolvePath('/driver')}
+						href={resolvePath('/dashboard/driver')}
 						class="text-sm font-medium text-gray-500 transition-colors hover:text-indigo-600"
 						>Driver</a
 					>
 					<a
-						href={resolvePath('/payments')}
+						href={resolvePath('/register')}
 						class="text-sm font-medium text-gray-500 transition-colors hover:text-indigo-600"
-						>Payments</a
+						>Register</a
 					>
 				</nav>
 			</div>

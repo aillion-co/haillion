@@ -14,9 +14,9 @@ describe('Aillion Web App Shell', () => {
 
 		// Assert navigation links
 		expect(layoutContent).toContain("href={resolvePath('/')}");
-		expect(layoutContent).toContain("href={resolvePath('/rider')}");
-		expect(layoutContent).toContain("href={resolvePath('/driver')}");
-		expect(layoutContent).toContain("href={resolvePath('/payments')}");
+		expect(layoutContent).toContain("href={resolvePath('/dashboard/rider')}");
+		expect(layoutContent).toContain("href={resolvePath('/dashboard/driver')}");
+		expect(layoutContent).toContain("href={resolvePath('/register')}");
 	});
 
 	it('shall produce a bun.lock and no npm/yarn/pnpm lockfiles', () => {
