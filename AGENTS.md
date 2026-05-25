@@ -2,7 +2,7 @@
 
 Go microservices monorepo. Services live under `services/<name>/`, shared libs under `pkg/`, internal-only code under `internal/`. One go.mod at the root (workspace mode).
 
-The Go services are **headless**: they expose gRPC and HTTP+JSON APIs and render no HTML. User-facing UIs live under `web/<app>/` and are built with a separate toolchain (Bun + SvelteKit) by the frontend agent. See the **Frontend** section below and `.opencode/agent/frontend.md`. The rules in this file are Go-specific unless a section says otherwise.
+The Go services are **headless**: they expose gRPC and HTTP+JSON APIs and render no HTML. User-facing UIs live under `web/<app>/` and are built with a separate toolchain (Bun + SvelteKit) by the frontend agent. See the **Frontend** section below and `.opencode/agents/frontend.md`. The rules in this file are Go-specific unless a section says otherwise.
 
 ## Tooling
 - Format: `gofmt -s -w` and `goimports -w` before any commit.
@@ -26,7 +26,7 @@ The project can run fully offline ("godark" mode); how a developer toggles modes
 
 ## Tool access (least privilege)
 
-Each agent runs with the minimum tools its role needs, declared in `.opencode/agent/*.md` frontmatter: planner and reviewer get read-only access plus `bash` (for `gh`, `gopls`, and the `scripts/`); only the coder and frontend agents get `write`/`edit`. Do not widen these grants.
+Each agent runs with the minimum tools its role needs, declared in `.opencode/agents/*.md` frontmatter: boss and reviewer get read-only access plus `bash` (for `gh`, `gopls`, and the `scripts/`); boss also gets `task` to orchestrate subagents; only the coder and frontend agents get `write`/`edit`. Do not widen these grants.
 
 Over-broad tool access is the single largest risk in an agentic setup, so:
 - **`bash` is powerful — keep it scoped** to the documented workflows (Go tooling, `./scripts/*`, `gh pr`). Do not use it to reach arbitrary network services or touch the filesystem outside the repo.
@@ -42,7 +42,7 @@ This repo is too large to fit in any model's context. Follow these rules without
 2. **Pull files on demand.** Never `cat` a directory. Use `gopls workspace/symbol` or `rg -l` to locate, then read only the spans you need.
 3. **Prefer symbol lookups over text search** for anything Go-specific (types, functions, interfaces). gopls respects scope and types; ripgrep doesn't.
 4. **Externalise state.** Decisions, partial findings, and TODOs go in the GitHub issue comments — not your context. Re-read the issue at the start of each turn.
-5. **Bounded sub-tasks.** If a task touches more than ~5 files or ~3 packages, stop and ask the planner to split it.
+5. **Bounded sub-tasks.** If a task touches more than ~5 files or ~3 packages, stop and ask the boss to split it.
 6. **Fresh context per issue.** Do not carry state between issues in your head. The issue body and its comments are the source of truth.
 7. **Consult vendored docs before the web.** Upstream docs for the libraries and tools this repo uses can be snapshotted under `docs/vendor/` (index in `docs/vendor/INDEX.md`), pinned to the versions we run; for Go packages, `go doc <pkg>` is authoritative. Read those before any web search — they are version-matched, free, and offline. `docs/vendor/` is generated, not committed (gitignored) — run `make docs` (`/docs`) to populate or refresh it; the source of truth is `docs/manifest.tsv`.
 
@@ -177,7 +177,7 @@ No marketing language. No "this makes the code cleaner". State what changed and 
 
 ## Frontend (`web/`)
 
-Go services here are headless. Anything user-facing — dashboards, admin UIs, customer apps — lives under `web/<app>/` and is owned by the frontend agent (`.opencode/agent/frontend.md`). The discipline mirrors the Go side: minimal dependencies, surgical changes, every line traceable to an acceptance criterion, and literal proof-gate output in the PR.
+Go services here are headless. Anything user-facing — dashboards, admin UIs, customer apps — lives under `web/<app>/` and is owned by the frontend agent (`.opencode/agents/frontend.md`). The discipline mirrors the Go side: minimal dependencies, surgical changes, every line traceable to an acceptance criterion, and literal proof-gate output in the PR.
 
 ### Toolset (non-negotiable)
 - **Bun for everything.** `bun install`, `bun run <script>`, `bun test`, `bunx`. **Never `npm`, `yarn`, or `pnpm`** — no `package-lock.json` or `yarn.lock`; the committed lockfile is `bun.lock`. CI installs with `bun install --frozen-lockfile`.
@@ -206,7 +206,7 @@ CI re-runs these via a path-filtered workflow and is the authoritative gate. If 
 
 ## Handover protocol
 
-All work is tracked as GitHub issues. See `.opencode/agent/planner.md`, `.opencode/agent/coder.md`, and `.opencode/agent/frontend.md` for role-specific rules. The issue is the single source of truth between agents.
+All work is tracked as GitHub issues. See `.opencode/agents/boss.md`, `.opencode/agents/coder.md`, and `.opencode/agents/frontend.md` for role-specific rules. The issue is the single source of truth between agents.
 
 ### Local-First Handover & Review Loop (Non-Negotiable)
 

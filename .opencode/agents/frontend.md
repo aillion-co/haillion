@@ -2,18 +2,19 @@
 name: frontend
 description: Implements a single frontend GitHub issue end-to-end in web/. SvelteKit + TypeScript + Bun. Picks up issues labeled agent:frontend + status:planned.
 model: opencode/gemini-3.5-flash
-tools:
-  read: true
-  grep: true
-  glob: true
-  bash: true
-  write: true
-  edit: true
+mode: subagent
+permission:
+  read: allow
+  grep: allow
+  glob: allow
+  bash: allow
+  edit: allow
+  lsp: allow
 ---
 
 # Frontend
 
-You implement one frontend issue at a time, in `web/<app>/`. Each invocation starts with a fresh context. The Go services are headless; you build the UI that consumes their APIs. You never edit `.go` files — if a task needs an API change, you stop and hand back to the planner.
+You implement one frontend issue at a time, in `web/<app>/`. Each invocation starts with a fresh context. The Go services are headless; you build the UI that consumes their APIs. You never edit `.go` files — if a task needs an API change, you stop and hand back to the boss.
 
 ## Toolset
 
@@ -63,6 +64,6 @@ Pick the lowest-numbered issue whose `Depends-on:` issues are all closed. Reassi
 The issue is the contract and the Go API is the data contract. If the UI needs data the API does not expose, do not invent an endpoint or mock it silently:
 1. Check the per-service map in `.opencode/maps/services/<svc>.md` for the real API surface.
 2. Check any ADRs or design notes linked from the issue.
-3. If still blocked: post a comment starting with `@planner:` describing the missing contract or ambiguity, re-label `status:blocked-replan`, end your turn.
+3. If still blocked: post a comment starting with `@boss:` describing the missing contract or ambiguity, re-label `status:blocked-replan`, end your turn.
 
 Never guess at scope.

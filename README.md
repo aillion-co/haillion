@@ -16,8 +16,8 @@ Haillion is composed of four core Go microservices:
 
 Building software with AI works best when the work is broken into small,
 well-defined tasks and each task is handed off cleanly. This repository wires up
-two AI agents — a **Planner** and a **Coder** (plus an optional **Reviewer**) —
-that talk to each other through **GitHub Issues**. The Planner turns a goal like
+two AI agents — a **Boss** and a **Coder** (plus an optional **Reviewer**) —
+that talk to each other through **GitHub Issues**. The Boss turns a goal like
 *"add rate limiting to the orders service"* into a set of small, checkable
 tasks. The Coder picks up one task at a time, writes the code, proves it works,
 and opens a pull request. The Reviewer checks that pull request against the
@@ -28,7 +28,7 @@ agent's memory.
 
 | Agent | Job | Writes code? |
 |-------|-----|--------------|
-| **Planner** | Breaks a goal into small GitHub issues with clear acceptance criteria. | No |
+| **Boss** | Breaks a goal into small GitHub issues with clear acceptance criteria. | No |
 | **Coder** | Implements one Go/backend issue end-to-end and opens a pull request. | Yes |
 | **Frontend** | Implements one UI issue end-to-end (SvelteKit + Bun) and opens a pull request. | Yes |
 | **Reviewer** | Checks a pull request against its issue; approves or requests changes. | No |
@@ -51,7 +51,7 @@ contract rather than hand-written twice.
 ```
 AGENTS.md                     # The rulebook every agent follows
 .opencode/
-├── agent/                    # One file per agent (planner, coder, frontend, reviewer)
+├── agents/                    # One file per agent (boss, coder, frontend, reviewer)
 ├── command/                  # Shortcuts: /plan, /work, /frontend, /review, /map
 └── maps/                     # An auto-generated "map" of the codebase
 scripts/
@@ -62,7 +62,7 @@ scripts/
 
 - **`AGENTS.md`** — the shared rulebook: coding conventions, what tools to use,
   how to keep changes small, and how to prove work is correct.
-- **`.opencode/agent/`** — the instructions and model assignment for each agent.
+- **`.opencode/agents/`** — the instructions and model assignment for each agent.
 - **`.opencode/command/`** — slash-command shortcuts that start an agent on a
   task (`/plan`, `/work`, `/review`, `/map`).
 - **`.opencode/maps/`** — a short, auto-generated summary of the codebase so
@@ -91,7 +91,7 @@ trustworthy. The main ones:
 - **Ask, don't guess.** If a task is ambiguous or would grow too large, the
   agent stops and asks rather than improvising.
 - **Stay in your lane.** Services can't reach into each other's private code;
-  reviewers don't rewrite code; planners don't write code.
+  reviewers don't rewrite code; bosses don't write code.
 
 ## Online and godark modes
 
@@ -103,7 +103,7 @@ The project runs in one of two modes:
 
 Run `make godark` **while still online**: it installs the tools, warms the Go
 and frontend caches, pulls the reference docs, snapshots the GitHub issues, and
-then switches the agents to local **Gemma** models (planner/review on
+then switches the agents to local **Gemma** models (boss/review on
 `gemma-4-31B-it`, coding/frontend on `gemma-4-26B-A4B-it`) that run without a
 network. After that, building, testing, linting, reading docs, and
 reading/updating issues all work offline; check the mode and readiness with
@@ -111,7 +111,7 @@ reading/updating issues all work offline; check the mode and readiness with
 with `make issues-sync` when you reconnect. Run `make online` to switch back to
 the Gemini models and re-enable the network.
 
-`make godark` rewrites the `model:` fields in `.opencode/agent/*.md` to the
+`make godark` rewrites the `model:` fields in `.opencode/agents/*.md` to the
 local models — so while dark those files show as modified. Run `make online` to
 restore the committed Gemini defaults before committing. The remaining
 network-only steps — opening PRs, `govulncheck`'s vulnerability database, the Go
@@ -121,7 +121,7 @@ told to plan around them in `AGENTS.md`.
 ## How to use it
 
 1. Ensure your AI agent environment is configured correctly.
-2. The initial architecture has been seeded into GitHub Issues via the Planner.
+2. The initial architecture has been seeded into GitHub Issues via the Boss.
 3. Run `make tools` to install the toolchain (online/Gemini is the default;
    run `make godark` instead when you need to go offline-ready).
 4. Let the Coder work through the queued issues (`/work`).

@@ -2,13 +2,14 @@
 name: coder
 description: Implements a single GitHub issue end-to-end. Picks up issues labeled agent:coder + status:planned.
 model: opencode/gemini-3.5-flash
-tools:
-  read: true
-  grep: true
-  glob: true
-  bash: true
-  write: true
-  edit: true
+mode: subagent
+permission:
+  read: allow
+  grep: allow
+  glob: allow
+  bash: allow
+  edit: allow
+  lsp: allow
 ---
 
 # Coder
@@ -64,6 +65,6 @@ Add label `agent:reviewer`. Re-label the issue from `status:in-progress` to `sta
 The issue is the contract. If the issue doesn't answer your question:
 1. Check the per-service map in `.opencode/maps/services/<svc>.md`.
 2. Check any ADRs linked from the issue.
-3. If still ambiguous: post a comment on the issue starting with `@planner:` describing the ambiguity, re-label `status:blocked-replan`, end your turn.
+3. If still ambiguous: post a comment on the issue starting with `@boss:` describing the ambiguity, re-label `status:blocked-replan`, end your turn.
 
 Never guess at scope.

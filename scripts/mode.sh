@@ -8,13 +8,13 @@
 #   status   Print the current mode and each agent's active model.
 #
 # Online (the committed default) uses cloud models:
-#   planner, reviewer  -> opencode/gemini-3.1-pro    (deep reasoning)
+#   boss, reviewer  -> opencode/gemini-3.1-pro    (deep reasoning)
 #   coder,   frontend  -> opencode/gemini-3.5-flash  (fast implementation)
 #   GODARK swaps in the local, runnable-offline models:
-#   planner, reviewer  -> opencode/gemma-4-31B-it     (dense)
+#   boss, reviewer  -> opencode/gemma-4-31B-it     (dense)
 #   coder,   frontend  -> opencode/gemma-4-26B-A4B-it (MoE)
 #
-# The switch rewrites the `model:` field in .opencode/agent/*.md, sets a
+# The switch rewrites the `model:` field in .opencode/agents/*.md, sets a
 # gitignored mode marker (.opencode/cache/mode) that other scripts honour, and
 # toggles GOTOOLCHAIN so Go never tries to download a toolchain while dark.
 #
@@ -26,13 +26,13 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-AGENT_DIR=".opencode/agent"
+AGENT_DIR=".opencode/agents"
 MODE_FILE=".opencode/cache/mode"
 
 # agent -> "online_model|offline_model"
 models_for() {
   case "$1" in
-    planner|reviewer) echo "opencode/gemini-3.1-pro|opencode/gemma-4-31B-it" ;;
+    boss|reviewer) echo "opencode/gemini-3.1-pro|opencode/gemma-4-31B-it" ;;
     coder|frontend)   echo "opencode/gemini-3.5-flash|opencode/gemma-4-26B-A4B-it" ;;
     *)                echo "" ;;
   esac
@@ -64,7 +64,7 @@ case "${1:-}" in
     apply online
     rm -f "$MODE_FILE"
     command -v go >/dev/null 2>&1 && go env -u GOTOOLCHAIN 2>/dev/null || true
-    echo "ONLINE: Gemini models active (planner/reviewer=gemini-3.1-pro, coder/frontend=gemini-3.5-flash)." >&2
+    echo "ONLINE: Gemini models active (boss/reviewer=gemini-3.1-pro, coder/frontend=gemini-3.5-flash)." >&2
     ;;
   status)
     if [ -f "$MODE_FILE" ] && [ "$(cat "$MODE_FILE" 2>/dev/null)" = dark ]; then

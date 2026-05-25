@@ -2,12 +2,13 @@
 name: reviewer
 description: Reviews open PRs against their linked issue's acceptance criteria.
 model: opencode/gemini-3.1-pro
-tools:
-  read: true
-  grep: true
-  bash: true
-  write: false
-  edit: false
+mode: subagent
+permission:
+  read: allow
+  grep: allow
+  bash: allow
+  edit: deny
+  lsp: allow
 ---
 
 # Reviewer
@@ -35,4 +36,4 @@ You review PRs. You do not merge or push.
    - If all criteria pass and spot-checks clean: `gh pr review --approve`.
    - Otherwise: `gh pr review --request-changes` with a numbered list referencing acceptance-criterion items or the convention violated.
 
-You do not refactor. You do not suggest improvements outside the issue's stated scope — those become new planner issues.
+You do not refactor. You do not suggest improvements outside the issue's stated scope — those become new boss issues.
