@@ -137,19 +137,16 @@ describe('Rider Matching & Trip API tests', () => {
 
 		await updateDriverLocation(mockDriverId, { lat: mockLat, lng: mockLng });
 
-		expect(fetchMock).toHaveBeenCalledWith(
-			`/api/matching/drivers/${mockDriverId}/location`,
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					lat: mockLat,
-					lng: mockLng
-				})
-			}
-		);
+		expect(fetchMock).toHaveBeenCalledWith(`/api/matching/drivers/${mockDriverId}/location`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				lat: mockLat,
+				lng: mockLng
+			})
+		});
 	});
 
 	it('6. When acceptTrip is called, it shall POST to /api/trip/trips/{trip_id}/accept with the driver ID', async () => {
@@ -169,18 +166,15 @@ describe('Rider Matching & Trip API tests', () => {
 
 		const result = await acceptTrip(mockTripId, { driver_id: mockDriverId });
 
-		expect(fetchMock).toHaveBeenCalledWith(
-			`/api/trip/trips/${mockTripId}/accept`,
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					driver_id: mockDriverId
-				})
-			}
-		);
+		expect(fetchMock).toHaveBeenCalledWith(`/api/trip/trips/${mockTripId}/accept`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				driver_id: mockDriverId
+			})
+		});
 		expect(result).toEqual(mockResponse);
 	});
 
@@ -201,16 +195,13 @@ describe('Rider Matching & Trip API tests', () => {
 
 		const result = await startTrip(mockTripId);
 
-		expect(fetchMock).toHaveBeenCalledWith(
-			`/api/trip/trips/${mockTripId}/start`,
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({})
-			}
-		);
+		expect(fetchMock).toHaveBeenCalledWith(`/api/trip/trips/${mockTripId}/start`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({})
+		});
 		expect(result).toEqual(mockResponse);
 	});
 
@@ -231,16 +222,13 @@ describe('Rider Matching & Trip API tests', () => {
 
 		const result = await completeTrip(mockTripId);
 
-		expect(fetchMock).toHaveBeenCalledWith(
-			`/api/trip/trips/${mockTripId}/complete`,
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({})
-			}
-		);
+		expect(fetchMock).toHaveBeenCalledWith(`/api/trip/trips/${mockTripId}/complete`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({})
+		});
 		expect(result).toEqual(mockResponse);
 	});
 

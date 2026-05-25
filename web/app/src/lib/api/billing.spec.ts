@@ -61,16 +61,13 @@ describe('Billing API tests', () => {
 
 		const result = await processPayment(mockPaymentId);
 
-		expect(fetchMock).toHaveBeenCalledWith(
-			`/api/billing/payments/${mockPaymentId}/process`,
-			{
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({})
-			}
-		);
+		expect(fetchMock).toHaveBeenCalledWith(`/api/billing/payments/${mockPaymentId}/process`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({})
+		});
 		expect(result).toEqual(mockResponse);
 	});
 
