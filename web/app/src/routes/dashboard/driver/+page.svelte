@@ -21,7 +21,7 @@
 					if (tripId) {
 						completedTripId = tripId;
 						try {
-							const tripRes = await originalFetch(`http://localhost:8080/api/trip/trips/${tripId}`);
+							const tripRes = await originalFetch(`/api/trip/trips/${tripId}`);
 							if (tripRes.ok) {
 								const tripData = await tripRes.json();
 								lastCompletedTripRiderId = tripData.rider_id;

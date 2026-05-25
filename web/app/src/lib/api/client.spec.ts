@@ -32,7 +32,7 @@ describe('API Client & Store Integration', () => {
 
 		const result = await registerUser(mockRequest);
 
-		expect(fetchMock).toHaveBeenCalledWith('http://localhost:8080/api/identity/users/register', {
+		expect(fetchMock).toHaveBeenCalledWith('/api/identity/users/register', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'

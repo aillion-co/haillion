@@ -33,7 +33,7 @@ describe('Review API tests', () => {
 
 		const result = await createReview(mockRequest);
 
-		expect(fetchMock).toHaveBeenCalledWith('http://localhost:8080/api/review/reviews', {
+		expect(fetchMock).toHaveBeenCalledWith('/api/review/reviews', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'

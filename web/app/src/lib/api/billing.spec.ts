@@ -34,7 +34,7 @@ describe('Billing API tests', () => {
 
 		const result = await createPayment({ trip_id: mockTripId, amount: mockAmount });
 
-		expect(fetchMock).toHaveBeenCalledWith('http://localhost:8080/api/billing/payments', {
+		expect(fetchMock).toHaveBeenCalledWith('/api/billing/payments', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -62,7 +62,7 @@ describe('Billing API tests', () => {
 		const result = await processPayment(mockPaymentId);
 
 		expect(fetchMock).toHaveBeenCalledWith(
-			`http://localhost:8080/api/billing/payments/${mockPaymentId}/process`,
+			`/api/billing/payments/${mockPaymentId}/process`,
 			{
 				method: 'POST',
 				headers: {

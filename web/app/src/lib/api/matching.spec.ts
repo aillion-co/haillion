@@ -35,7 +35,7 @@ describe('Rider Matching & Trip API tests', () => {
 			lng: mockLng
 		});
 
-		expect(fetchMock).toHaveBeenCalledWith('http://localhost:8080/api/matching/match', {
+		expect(fetchMock).toHaveBeenCalledWith('/api/matching/match', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -70,7 +70,7 @@ describe('Rider Matching & Trip API tests', () => {
 			lng: mockLng
 		});
 
-		expect(fetchMock).toHaveBeenCalledWith('http://localhost:8080/api/trip/trips', {
+		expect(fetchMock).toHaveBeenCalledWith('/api/trip/trips', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -102,7 +102,7 @@ describe('Rider Matching & Trip API tests', () => {
 
 		const result = await getTrip(tripId);
 
-		expect(fetchMock).toHaveBeenCalledWith(`http://localhost:8080/api/trip/trips/${tripId}`, {
+		expect(fetchMock).toHaveBeenCalledWith(`/api/trip/trips/${tripId}`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json'
@@ -138,7 +138,7 @@ describe('Rider Matching & Trip API tests', () => {
 		await updateDriverLocation(mockDriverId, { lat: mockLat, lng: mockLng });
 
 		expect(fetchMock).toHaveBeenCalledWith(
-			`http://localhost:8080/api/matching/drivers/${mockDriverId}/location`,
+			`/api/matching/drivers/${mockDriverId}/location`,
 			{
 				method: 'POST',
 				headers: {
@@ -170,7 +170,7 @@ describe('Rider Matching & Trip API tests', () => {
 		const result = await acceptTrip(mockTripId, { driver_id: mockDriverId });
 
 		expect(fetchMock).toHaveBeenCalledWith(
-			`http://localhost:8080/api/trip/trips/${mockTripId}/accept`,
+			`/api/trip/trips/${mockTripId}/accept`,
 			{
 				method: 'POST',
 				headers: {
@@ -202,7 +202,7 @@ describe('Rider Matching & Trip API tests', () => {
 		const result = await startTrip(mockTripId);
 
 		expect(fetchMock).toHaveBeenCalledWith(
-			`http://localhost:8080/api/trip/trips/${mockTripId}/start`,
+			`/api/trip/trips/${mockTripId}/start`,
 			{
 				method: 'POST',
 				headers: {
@@ -232,7 +232,7 @@ describe('Rider Matching & Trip API tests', () => {
 		const result = await completeTrip(mockTripId);
 
 		expect(fetchMock).toHaveBeenCalledWith(
-			`http://localhost:8080/api/trip/trips/${mockTripId}/complete`,
+			`/api/trip/trips/${mockTripId}/complete`,
 			{
 				method: 'POST',
 				headers: {
@@ -269,7 +269,7 @@ describe('Rider Matching & Trip API tests', () => {
 		}
 		vi.stubGlobal('EventSource', MockEventSource);
 
-		const url = `http://localhost:8080/api/notification/stream?user_id=${mockDriverId}`;
+		const url = `/api/notification/stream?user_id=${mockDriverId}`;
 		const es = new EventSource(url);
 
 		expect(es.url).toBe(url);
