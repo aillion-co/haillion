@@ -143,7 +143,7 @@ Haillion is designed to be easily runnable locally using Docker, Kubernetes (via
    ```bash
    skaffold run
    ```
-4. The API Gateway will be automatically port-forwarded to `http://localhost:8080`.
+4. The API Gateway will be automatically port-forwarded to `http://localhost:8080`. Both the frontend UI and backend APIs are unified under this single gateway port! Open your browser and navigate to **`http://localhost:8080`** to interact with the Haillion platform (register as a rider/driver, request trips, etc.).
 
 ### Running E2E Tests
 
@@ -160,11 +160,11 @@ Once the platform is running locally via `skaffold run`:
    go test -v ./test/e2e/...
    ```
 
-### Running the Frontend UI Locally
+### Running the Frontend UI Locally (Development)
 
 The user-facing web application is built with SvelteKit and Bun, located under `web/app/`.
 
-To test and develop the UI locally against your running cluster:
+If you need to test and develop the UI locally with hot-reloading against your running cluster:
 
 1. Ensure the backend platform is running and the gateway is port-forwarded:
    ```bash
@@ -183,7 +183,7 @@ To test and develop the UI locally against your running cluster:
    ```bash
    bun run dev
    ```
-5. Open your browser and navigate to `http://localhost:5173` to interact with the Haillion platform (register as a rider/driver, request trips, etc.).
+5. Open your browser and navigate to `http://localhost:5173` to interact with the hot-reloading dev server.
 
 **Frontend Testing & Checks:**
 You can run the frontend verification checks from within the `web/app` directory:
