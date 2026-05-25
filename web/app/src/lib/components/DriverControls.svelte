@@ -10,8 +10,7 @@
 	let { driverId }: Props = $props();
 
 	let isOnline = $state(false);
-	let lat = $state(37.7749);
-	let lng = $state(-122.4194);
+	let postcode = $state('');
 	let activeTripId = $state<string | null>(null);
 	let activeTripState = $state<'requested' | 'accepted' | 'in_progress' | 'completed' | null>(null);
 	let errorMessage = $state<string | null>(null);
@@ -76,11 +75,12 @@
 	});
 
 	async function sendLocationUpdate() {
+		if (!postcode.trim()) {
+			errorMessage = 'Failed to send location update: postcode is required';
+			return;
+		}
 		try {
-			await updateDriverLocation(driverId, { lat, lng });
-			// Slight random drift for realistic simulation
-			lat += (Math.random() - 0.5) * 0.0001;
-			lng += (Math.random() - 0.5) * 0.0001;
+			await updateDriverLocation(driverId, { postcode: postcode.trim().toUpperCase() });
 			errorMessage = null;
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
@@ -209,35 +209,19 @@
 			</span>
 		</div>
 
-		<!-- Coordinates inputs -->
-		<div class="mt-4 grid grid-cols-2 gap-4">
-			<div>
-				<label
-					for="driver-lat"
-					class="block text-xs font-semibold tracking-wider text-gray-500 uppercase">Latitude</label
-				>
-				<input
-					id="driver-lat"
-					type="number"
-					step="0.0001"
-					bind:value={lat}
-					class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-				/>
-			</div>
-			<div>
-				<label
-					for="driver-lng"
-					class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
-					>Longitude</label
-				>
-				<input
-					id="driver-lng"
-					type="number"
-					step="0.0001"
-					bind:value={lng}
-					class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-				/>
-			</div>
+		<!-- Postcode input -->
+		<div class="mt-4">
+			<label
+				for="driver-postcode"
+				class="block text-xs font-semibold tracking-wider text-gray-500 uppercase">Postcode</label
+			>
+			<input
+				id="driver-postcode"
+				type="text"
+				placeholder="e.g. SW1A 1AA"
+				bind:value={postcode}
+				class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+			/>
 		</div>
 	</div>
 

@@ -1,15 +1,13 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
-	import { matchDriver } from '$lib/api/matching';
+	import { matchDriver, requestRide, ApiError } from '$lib/api/matching';
 	import { createTrip, getTrip } from '$lib/api/trip';
 	import TripStatus from '$lib/components/TripStatus.svelte';
 	import PaymentFlow from '$lib/components/PaymentFlow.svelte';
 	import RatingForm from '$lib/components/RatingForm.svelte';
 
-	// Mock coordinates
-	let lat = $state(37.7749);
-	let lng = $state(-122.4194);
+	let postcode = $state('');
 
 	let loading = $state(false);
 	let activeTripId = $state<string | null>(null);
@@ -47,28 +45,32 @@
 		paymentSucceeded = false;
 		stopPolling();
 
+		const normalisedPostcode = postcode.trim().toUpperCase();
+
 		try {
-			// 1. POST to matching API
+			// 1. POST to riders request API
+			await requestRide($authStore.id, { postcode: normalisedPostcode });
+
+			// 2. POST to matching API
 			const matchResponse = await matchDriver({
 				rider_id: $authStore.id,
-				lat,
-				lng
+				postcode: normalisedPostcode
 			});
 
 			driverId = matchResponse.driver_id;
 			eta = matchResponse.eta_seconds;
 
-			// 2. POST to trip creation API
+			// 3. POST to trip creation API
 			const tripResponse = await createTrip({
 				rider_id: $authStore.id,
-				lat,
-				lng
+				lat: 37.7749,
+				lng: -122.4194
 			});
 
 			activeTripId = tripResponse.id;
 			tripState = tripResponse.state;
 
-			// 3. Start polling trip status
+			// 4. Start polling trip status
 			pollInterval = setInterval(async () => {
 				if (!activeTripId) return;
 				try {
@@ -86,8 +88,15 @@
 				}
 			}, 3000);
 		} catch (err) {
-			// "If the match API call fails, then the component shall display a "No drivers available" error."
-			errorMessage = 'No drivers available';
+			if (
+				err instanceof ApiError &&
+				err.status === 400 &&
+				(err.message === 'invalid postcode' || err.message === 'postcode not found')
+			) {
+				errorMessage = err.message;
+			} else {
+				errorMessage = 'No drivers available';
+			}
 			console.error(err);
 		} finally {
 			loading = false;
@@ -142,38 +151,20 @@
 			<!-- Controls Card -->
 			<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
 				<h2 class="text-xl font-bold text-gray-900">Request a Ride</h2>
-				<p class="mt-1 text-xs text-gray-500">
-					Set coordinates or use defaults to match with local drivers.
-				</p>
+				<p class="mt-1 text-xs text-gray-500">Enter your postcode to match with local drivers.</p>
 
 				<div class="mt-6 space-y-4">
 					<div>
 						<label
-							for="latitude"
+							for="pickup-postcode"
 							class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
-							>Latitude</label
+							>Pickup postcode</label
 						>
 						<input
-							type="number"
-							id="latitude"
-							step="0.0001"
-							bind:value={lat}
-							disabled={loading || !!activeTripId}
-							class="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
-						/>
-					</div>
-
-					<div>
-						<label
-							for="longitude"
-							class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
-							>Longitude</label
-						>
-						<input
-							type="number"
-							id="longitude"
-							step="0.0001"
-							bind:value={lng}
+							type="text"
+							id="pickup-postcode"
+							placeholder="e.g. SW1A 1AA"
+							bind:value={postcode}
 							disabled={loading || !!activeTripId}
 							class="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-50 disabled:text-gray-500"
 						/>
@@ -181,7 +172,7 @@
 
 					<button
 						onclick={handleRequestRide}
-						disabled={loading || (!!activeTripId && tripState !== 'completed')}
+						disabled={loading || !postcode.trim() || (!!activeTripId && tripState !== 'completed')}
 						data-testid="request-ride-btn"
 						class="flex w-full items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-indigo-400"
 					>

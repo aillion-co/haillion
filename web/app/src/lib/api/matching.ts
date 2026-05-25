@@ -1,7 +1,8 @@
 export interface MatchRequest {
 	rider_id: string;
-	lat: number;
-	lng: number;
+	lat?: number;
+	lng?: number;
+	postcode?: string;
 }
 
 export interface MatchResponse {
@@ -10,8 +11,13 @@ export interface MatchResponse {
 }
 
 export interface DriverLocationRequest {
-	lat: number;
-	lng: number;
+	lat?: number;
+	lng?: number;
+	postcode?: string;
+}
+
+export interface PostcodeLocationRequest {
+	postcode: string;
 }
 
 import { API_BASE_URL } from './config';
@@ -36,7 +42,11 @@ export async function matchDriver(request: MatchRequest): Promise<MatchResponse>
 	});
 
 	if (!response.ok) {
-		throw new ApiError(response.status, `Matching failed with status ${response.status}`);
+		const text = await response.text();
+		throw new ApiError(
+			response.status,
+			text.trim() || `Matching failed with status ${response.status}`
+		);
 	}
 
 	return response.json();
@@ -55,6 +65,45 @@ export async function updateDriverLocation(
 	});
 
 	if (!response.ok) {
-		throw new ApiError(response.status, `Updating location failed with status ${response.status}`);
+		const text = await response.text();
+		throw new ApiError(
+			response.status,
+			text.trim() || `Updating location failed with status ${response.status}`
+		);
+	}
+}
+
+export async function requestRide(riderId: string, req: PostcodeLocationRequest): Promise<void> {
+	const response = await fetch(`${API_BASE_URL}/matching/riders/${riderId}/request`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify(req)
+	});
+
+	if (!response.ok) {
+		const text = await response.text();
+		throw new ApiError(
+			response.status,
+			text.trim() || `Requesting ride failed with status ${response.status}`
+		);
+	}
+}
+
+export async function cancelRide(riderId: string): Promise<void> {
+	const response = await fetch(`${API_BASE_URL}/matching/riders/${riderId}/cancel`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
+
+	if (!response.ok) {
+		const text = await response.text();
+		throw new ApiError(
+			response.status,
+			text.trim() || `Canceling ride failed with status ${response.status}`
+		);
 	}
 }
