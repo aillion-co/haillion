@@ -24,7 +24,7 @@
 
 	onMount(() => {
 		// Connect to EventSource
-		const url = `http://localhost:8080/api/notification/stream?user_id=${driverId}`;
+		const url = `/api/notification/stream?user_id=${driverId}`;
 		eventSource = new EventSource(url);
 
 		eventSource.onopen = () => {
