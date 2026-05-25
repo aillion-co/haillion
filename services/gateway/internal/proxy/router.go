@@ -4,11 +4,13 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sort"
 	"strings"
 )
 
 type GatewayRouter struct {
-	routes map[string]*httputil.ReverseProxy
+	routes   map[string]*httputil.ReverseProxy
+	prefixes []string
 }
 
 func NewGatewayRouter(serviceURLs map[string]string) (*GatewayRouter, error) {
@@ -39,7 +41,15 @@ func NewGatewayRouter(serviceURLs map[string]string) (*GatewayRouter, error) {
 		routes[prefix] = proxy
 	}
 
-	return &GatewayRouter{routes: routes}, nil
+	prefixes := make([]string, 0, len(routes))
+	for prefix := range routes {
+		prefixes = append(prefixes, prefix)
+	}
+	sort.Slice(prefixes, func(i, j int) bool {
+		return len(prefixes[i]) > len(prefixes[j])
+	})
+
+	return &GatewayRouter{routes: routes, prefixes: prefixes}, nil
 }
 
 func (g *GatewayRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -53,8 +63,9 @@ func (g *GatewayRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for prefix, proxy := range g.routes {
+	for _, prefix := range g.prefixes {
 		if strings.HasPrefix(r.URL.Path, prefix) {
+			proxy := g.routes[prefix]
 			proxy.ServeHTTP(w, r)
 			return
 		}

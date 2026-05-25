@@ -38,6 +38,7 @@ func main() {
 		"/api/billing":      getEnv("BILLING_URL", "http://localhost:8084"),
 		"/api/review":       getEnv("REVIEW_URL", "http://localhost:8085"),
 		"/api/notification": getEnv("NOTIFICATION_URL", "http://localhost:8086"),
+		"/":                 getEnv("FRONTEND_URL", "http://localhost:3000"),
 	}
 
 	for path, target := range serviceURLs {

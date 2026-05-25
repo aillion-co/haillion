@@ -59,3 +59,43 @@ func TestGatewayRouter_RoutingAndCORS(t *testing.T) {
 		assert.Contains(t, rec.Body.String(), "gateway: route not found")
 	})
 }
+
+func TestGatewayRouter_LongestPrefixMatching(t *testing.T) {
+	mockSpecific := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("specific"))
+	}))
+	defer mockSpecific.Close()
+
+	mockGeneral := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("general"))
+	}))
+	defer mockGeneral.Close()
+
+	serviceURLs := map[string]string{
+		"/":             mockGeneral.URL,
+		"/api/identity": mockSpecific.URL,
+	}
+
+	router, err := NewGatewayRouter(serviceURLs)
+	require.NoError(t, err)
+
+	t.Run("matches specific prefix over root prefix", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/identity/users", nil)
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "specific", rec.Body.String())
+	})
+
+	t.Run("matches root prefix for other routes", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/any-other-route", nil)
+		rec := httptest.NewRecorder()
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "general", rec.Body.String())
+	})
+}
