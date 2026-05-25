@@ -20,6 +20,20 @@ export interface PostcodeLocationRequest {
 	postcode: string;
 }
 
+export interface NearbyDriver {
+	driver_id: string;
+	lat: number;
+	lng: number;
+	distance_m: number;
+}
+
+export interface NearbyRider {
+	rider_id: string;
+	lat: number;
+	lng: number;
+	distance_m: number;
+}
+
 import { API_BASE_URL } from './config';
 
 export class ApiError extends Error {
@@ -106,4 +120,58 @@ export async function cancelRide(riderId: string): Promise<void> {
 			text.trim() || `Canceling ride failed with status ${response.status}`
 		);
 	}
+}
+
+export async function nearbyDrivers(
+	riderId: string,
+	radiusMeters?: number
+): Promise<NearbyDriver[]> {
+	const radius = radiusMeters !== undefined ? radiusMeters : 5000;
+	const response = await fetch(
+		`${API_BASE_URL}/matching/riders/${riderId}/nearby-drivers?radius_m=${radius}`,
+		{
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		}
+	);
+
+	if (!response.ok) {
+		const text = await response.text();
+		throw new ApiError(
+			response.status,
+			text.trim() || `Fetching nearby drivers failed with status ${response.status}`
+		);
+	}
+
+	const data = await response.json();
+	return data.drivers || [];
+}
+
+export async function nearbyRiders(
+	driverId: string,
+	radiusMeters?: number
+): Promise<NearbyRider[]> {
+	const radius = radiusMeters !== undefined ? radiusMeters : 5000;
+	const response = await fetch(
+		`${API_BASE_URL}/matching/drivers/${driverId}/nearby-riders?radius_m=${radius}`,
+		{
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		}
+	);
+
+	if (!response.ok) {
+		const text = await response.text();
+		throw new ApiError(
+			response.status,
+			text.trim() || `Fetching nearby riders failed with status ${response.status}`
+		);
+	}
+
+	const data = await response.json();
+	return data.riders || [];
 }

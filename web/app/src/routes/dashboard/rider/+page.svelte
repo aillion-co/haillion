@@ -2,11 +2,13 @@
 	import { onDestroy } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { matchDriver, requestRide, ApiError } from '$lib/api/matching';
+	import { nearbyDrivers, type NearbyDriver } from '$lib/api/matching';
 	import { createTrip, getTrip } from '$lib/api/trip';
 	import TripStatus from '$lib/components/TripStatus.svelte';
 	import PaymentFlow from '$lib/components/PaymentFlow.svelte';
 	import RatingForm from '$lib/components/RatingForm.svelte';
 	import FareEstimate from '$lib/components/FareEstimate.svelte';
+	import NearbyList from '$lib/components/NearbyList.svelte';
 
 	let postcode = $state('');
 	let destinationPostcode = $state('');
@@ -20,6 +22,45 @@
 	let paymentSucceeded = $state(false);
 
 	let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+	let nearbyDriversList = $state<NearbyDriver[]>([]);
+	let nearbyDriversStatus = $state<'loading' | 'ok' | 'empty' | 'error' | 'idle'>('idle');
+
+	$effect(() => {
+		const isPending = activeTripId && (tripState === 'requested' || tripState === 'accepted');
+
+		if (!isPending) {
+			nearbyDriversStatus = 'idle';
+			nearbyDriversList = [];
+			return;
+		}
+
+		nearbyDriversStatus = 'loading';
+
+		async function fetchNearby() {
+			if (!$authStore) return;
+			try {
+				const list = await nearbyDrivers($authStore.id);
+				nearbyDriversList = list;
+				nearbyDriversStatus = list.length === 0 ? 'empty' : 'ok';
+			} catch (err) {
+				if (err instanceof ApiError && err.status === 404) {
+					nearbyDriversStatus = 'idle';
+					nearbyDriversList = [];
+				} else {
+					nearbyDriversStatus = 'error';
+				}
+			}
+		}
+
+		fetchNearby();
+
+		const interval = setInterval(fetchNearby, 5000);
+
+		return () => {
+			clearInterval(interval);
+		};
+	});
 
 	function stopPolling() {
 		if (pollInterval) {
@@ -226,7 +267,18 @@
 					</div>
 				</div>
 
-				<FareEstimate pickup={postcode} destination={destinationPostcode} riders={0} drivers={0} />
+				<NearbyList
+					kind="driver"
+					items={nearbyDriversList.map((d) => ({ id: d.driver_id, distanceMeters: d.distance_m }))}
+					status={nearbyDriversStatus}
+				/>
+
+				<FareEstimate
+					pickup={postcode}
+					destination={destinationPostcode}
+					riders={Math.max(1, nearbyDriversList.length)}
+					drivers={Math.max(1, nearbyDriversList.length)}
+				/>
 			</div>
 
 			<!-- Status Column -->

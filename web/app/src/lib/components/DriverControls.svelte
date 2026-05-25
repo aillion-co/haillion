@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { updateDriverLocation } from '$lib/api/matching';
+	import {
+		updateDriverLocation,
+		nearbyRiders,
+		type NearbyRider,
+		ApiError
+	} from '$lib/api/matching';
 	import { acceptTrip, startTrip, completeTrip } from '$lib/api/trip';
+	import NearbyList from '$lib/components/NearbyList.svelte';
 
 	interface Props {
 		driverId: string;
@@ -20,6 +26,42 @@
 
 	let eventSource: EventSource | null = null;
 	let locationInterval: ReturnType<typeof setInterval> | null = null;
+
+	let nearbyRidersList = $state<NearbyRider[]>([]);
+	let nearbyRidersStatus = $state<'loading' | 'ok' | 'empty' | 'error' | 'idle'>('idle');
+
+	$effect(() => {
+		if (!isOnline) {
+			nearbyRidersStatus = 'idle';
+			nearbyRidersList = [];
+			return;
+		}
+
+		nearbyRidersStatus = 'loading';
+
+		async function fetchNearby() {
+			try {
+				const list = await nearbyRiders(driverId);
+				nearbyRidersList = list;
+				nearbyRidersStatus = list.length === 0 ? 'empty' : 'ok';
+			} catch (err) {
+				if (err instanceof ApiError && err.status === 404) {
+					nearbyRidersStatus = 'idle';
+					nearbyRidersList = [];
+				} else {
+					nearbyRidersStatus = 'error';
+				}
+			}
+		}
+
+		fetchNearby();
+
+		const interval = setInterval(fetchNearby, 5000);
+
+		return () => {
+			clearInterval(interval);
+		};
+	});
 
 	onMount(() => {
 		// Connect to EventSource
@@ -224,6 +266,12 @@
 			/>
 		</div>
 	</div>
+
+	<NearbyList
+		kind="rider"
+		items={nearbyRidersList.map((r) => ({ id: r.rider_id, distanceMeters: r.distance_m }))}
+		status={nearbyRidersStatus}
+	/>
 
 	<!-- Active Trip Management -->
 	<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-md">

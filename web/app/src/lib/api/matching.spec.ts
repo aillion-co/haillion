@@ -1,7 +1,15 @@
 // Verified: properly imports vi, describe, it, expect, beforeEach, afterEach from vitest
 // Verified: mock fetch calls correctly intercept API requests without throwing undefined errors
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { matchDriver, updateDriverLocation, requestRide, cancelRide, ApiError } from './matching';
+import {
+	matchDriver,
+	updateDriverLocation,
+	requestRide,
+	cancelRide,
+	ApiError,
+	nearbyDrivers,
+	nearbyRiders
+} from './matching';
 import { createTrip, getTrip, acceptTrip, startTrip, completeTrip } from './trip';
 
 describe('Rider Matching & Trip API tests', () => {
@@ -357,5 +365,51 @@ describe('Rider Matching & Trip API tests', () => {
 				'Content-Type': 'application/json'
 			}
 		});
+	});
+
+	it('16. When nearbyDrivers is called, it shall GET /api/matching/riders/{id}/nearby-drivers', async () => {
+		const mockDrivers = [{ driver_id: 'driver-1', lat: 10, lng: 20, distance_m: 100 }];
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			status: 200,
+			json: async () => ({ drivers: mockDrivers })
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		const result = await nearbyDrivers(mockRiderId, 3000);
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			`/api/matching/riders/${mockRiderId}/nearby-drivers?radius_m=3000`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			}
+		);
+		expect(result).toEqual(mockDrivers);
+	});
+
+	it('17. When nearbyRiders is called, it shall GET /api/matching/drivers/{id}/nearby-riders', async () => {
+		const mockRiders = [{ rider_id: 'rider-1', lat: 10, lng: 20, distance_m: 100 }];
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+			status: 200,
+			json: async () => ({ riders: mockRiders })
+		});
+		vi.stubGlobal('fetch', fetchMock);
+
+		const result = await nearbyRiders(mockDriverId);
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			`/api/matching/drivers/${mockDriverId}/nearby-riders?radius_m=5000`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			}
+		);
+		expect(result).toEqual(mockRiders);
 	});
 });
