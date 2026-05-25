@@ -47,8 +47,3 @@ portForward:
     namespace: haillion
     port: 8080
     localPort: 8080
-  - resourceType: service
-    resourceName: frontend
-    namespace: haillion
-    port: 3000
-    localPort: 3000
