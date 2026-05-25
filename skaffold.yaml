@@ -32,6 +32,10 @@ build:
       context: .
       docker:
         dockerfile: services/trip/Dockerfile
+    - image: haillion-frontend
+      context: web/app
+      docker:
+        dockerfile: Dockerfile
 manifests:
   rawYaml:
     - k8s/services/*.yaml
@@ -43,3 +47,8 @@ portForward:
     namespace: haillion
     port: 8080
     localPort: 8080
+  - resourceType: service
+    resourceName: frontend
+    namespace: haillion
+    port: 3000
+    localPort: 3000
