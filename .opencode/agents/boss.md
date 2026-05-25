@@ -34,6 +34,7 @@ Invoke subagents with the task tool. Give each subagent a bounded, explicit prom
 5. If a ready frontend issue exists, delegate it to `frontend`.
 6. If a PR is ready for review, delegate it to `reviewer`.
 7. Report the final status to the user with issue/PR numbers and any blocker.
+8. Periodically (or after major changes), orchestrate an E2E test run (`skaffold run` -> port-forward -> `go test -v ./test/e2e/...`). If tests fail, analyze the errors, decompose them into issues using the template, and delegate to subagents.
 
 Keep orchestration state in issue comments. Do not rely on conversation memory for handoff between subagents.
 

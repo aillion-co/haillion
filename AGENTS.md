@@ -244,3 +244,12 @@ All Go microservices must be containerized and deployed to a local KIND cluster 
 - Create a distinct test package (e.g., `test/e2e/`) that runs solely against the deployed API Gateway endpoint.
 - E2E tests should use standard `testing` framework, treating the entire system as a black box (HTTP in, HTTP out).
 - Verify the full platform lifecycle: rider registers -> driver registers -> driver updates location -> rider requests match -> trip accepted -> trip started -> trip completed -> payment created/processed -> review submitted.
+
+### Periodic E2E Run & Issue Ticketing
+- Periodically, or after major architectural changes, the Boss agent MUST orchestrate an E2E test run against the local KIND deployment.
+- Process:
+  1. Ensure the KIND cluster is running and services are deployed (`skaffold run`).
+  2. Setup port-forwarding to the `gateway` service (port `8080:8080`).
+  3. Execute the E2E suite (`go test -v ./test/e2e/...`).
+  4. If the test suite fails or issues are detected, the Boss agent will analyze the failure, decompose it into actionable tasks, and ticket them up as new GitHub issues using the issue template.
+  5. Hand off those issues to the `coder` or `frontend` subagents for fixing.
