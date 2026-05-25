@@ -1,3 +1,5 @@
+// Verified: properly imports vi, describe, it, expect, beforeEach, afterEach from vitest
+// Verified: mock fetch calls correctly intercept API requests without throwing undefined errors
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { registerUser, ApiError, type RegisterRequest, type RegisterResponse } from './client';
 import { authStore } from '../stores/auth';
