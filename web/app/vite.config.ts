@@ -4,6 +4,11 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	resolve: process.env.VITEST
+		? {
+				conditions: ['browser']
+			}
+		: undefined,
 	server: {
 		proxy: {
 			'/api': 'http://localhost:8080'
@@ -21,6 +26,15 @@ export default defineConfig({
 					globals: true,
 					include: ['src/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
+				}
+			},
+			{
+				extends: './vite.config.ts',
+				test: {
+					name: 'client',
+					environment: 'jsdom',
+					globals: true,
+					include: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
 			}
 		]
