@@ -12,6 +12,7 @@ import (
 )
 
 type mockLocationRepository struct {
+	domain.LocationRepository
 	updateLocationFunc    func(ctx context.Context, driverID string, loc domain.Location) error
 	findNearbyDriversFunc func(ctx context.Context, riderLoc domain.Location, radiusMeters float64) ([]domain.DriverLocation, error)
 }

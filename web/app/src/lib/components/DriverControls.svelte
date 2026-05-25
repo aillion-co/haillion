@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { updateDriverLocation } from '$lib/api/matching';
+	import {
+		updateDriverLocation,
+		nearbyRiders,
+		type NearbyRider,
+		ApiError
+	} from '$lib/api/matching';
 	import { acceptTrip, startTrip, completeTrip } from '$lib/api/trip';
+	import NearbyList from '$lib/components/NearbyList.svelte';
+	import NearbyMap from '$lib/components/NearbyMap.svelte';
 
 	interface Props {
 		driverId: string;
@@ -10,8 +17,7 @@
 	let { driverId }: Props = $props();
 
 	let isOnline = $state(false);
-	let lat = $state(37.7749);
-	let lng = $state(-122.4194);
+	let postcode = $state('');
 	let activeTripId = $state<string | null>(null);
 	let activeTripState = $state<'requested' | 'accepted' | 'in_progress' | 'completed' | null>(null);
 	let errorMessage = $state<string | null>(null);
@@ -21,6 +27,71 @@
 
 	let eventSource: EventSource | null = null;
 	let locationInterval: ReturnType<typeof setInterval> | null = null;
+
+	let nearbyRidersList = $state<NearbyRider[]>([]);
+	let nearbyRidersStatus = $state<'loading' | 'ok' | 'empty' | 'error' | 'idle'>('idle');
+
+	const driverMapData = $derived.by(() => {
+		if (nearbyRidersList.length === 0) return null;
+
+		let latSum = 0;
+		let lngSum = 0;
+		for (const r of nearbyRidersList) {
+			latSum += r.lat;
+			lngSum += r.lng;
+		}
+		const centerLat = latSum / nearbyRidersList.length;
+		const centerLng = lngSum / nearbyRidersList.length;
+
+		return {
+			center: { lat: centerLat, lng: centerLng },
+			you: {
+				id: 'driver-you',
+				lat: centerLat,
+				lng: centerLng,
+				label: 'Your location (approx)'
+			},
+			others: nearbyRidersList.map((r) => ({
+				id: r.rider_id,
+				lat: r.lat,
+				lng: r.lng,
+				label: `Rider ${r.rider_id.substring(0, 4)} (${(r.distance_m / 1609.34).toFixed(1)} mi)`
+			}))
+		};
+	});
+
+	$effect(() => {
+		if (!isOnline) {
+			nearbyRidersStatus = 'idle';
+			nearbyRidersList = [];
+			return;
+		}
+
+		nearbyRidersStatus = 'loading';
+
+		async function fetchNearby() {
+			try {
+				const list = await nearbyRiders(driverId);
+				nearbyRidersList = list;
+				nearbyRidersStatus = list.length === 0 ? 'empty' : 'ok';
+			} catch (err) {
+				if (err instanceof ApiError && err.status === 404) {
+					nearbyRidersStatus = 'idle';
+					nearbyRidersList = [];
+				} else {
+					nearbyRidersStatus = 'error';
+				}
+			}
+		}
+
+		fetchNearby();
+
+		const interval = setInterval(fetchNearby, 5000);
+
+		return () => {
+			clearInterval(interval);
+		};
+	});
 
 	onMount(() => {
 		// Connect to EventSource
@@ -76,11 +147,12 @@
 	});
 
 	async function sendLocationUpdate() {
+		if (!postcode.trim()) {
+			errorMessage = 'Failed to send location update: postcode is required';
+			return;
+		}
 		try {
-			await updateDriverLocation(driverId, { lat, lng });
-			// Slight random drift for realistic simulation
-			lat += (Math.random() - 0.5) * 0.0001;
-			lng += (Math.random() - 0.5) * 0.0001;
+			await updateDriverLocation(driverId, { postcode: postcode.trim().toUpperCase() });
 			errorMessage = null;
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
@@ -209,37 +281,35 @@
 			</span>
 		</div>
 
-		<!-- Coordinates inputs -->
-		<div class="mt-4 grid grid-cols-2 gap-4">
-			<div>
-				<label
-					for="driver-lat"
-					class="block text-xs font-semibold tracking-wider text-gray-500 uppercase">Latitude</label
-				>
-				<input
-					id="driver-lat"
-					type="number"
-					step="0.0001"
-					bind:value={lat}
-					class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-				/>
-			</div>
-			<div>
-				<label
-					for="driver-lng"
-					class="block text-xs font-semibold tracking-wider text-gray-500 uppercase"
-					>Longitude</label
-				>
-				<input
-					id="driver-lng"
-					type="number"
-					step="0.0001"
-					bind:value={lng}
-					class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-				/>
-			</div>
+		<!-- Postcode input -->
+		<div class="mt-4">
+			<label
+				for="driver-postcode"
+				class="block text-xs font-semibold tracking-wider text-gray-500 uppercase">Postcode</label
+			>
+			<input
+				id="driver-postcode"
+				type="text"
+				placeholder="e.g. SW1A 1AA"
+				bind:value={postcode}
+				class="mt-1 block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+			/>
 		</div>
 	</div>
+
+	<NearbyList
+		kind="rider"
+		items={nearbyRidersList.map((r) => ({ id: r.rider_id, distanceMeters: r.distance_m }))}
+		status={nearbyRidersStatus}
+	/>
+
+	{#if driverMapData}
+		<NearbyMap
+			center={driverMapData.center}
+			you={driverMapData.you}
+			others={driverMapData.others}
+		/>
+	{/if}
 
 	<!-- Active Trip Management -->
 	<div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
