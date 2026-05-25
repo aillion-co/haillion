@@ -65,7 +65,9 @@ describe('NearbyMap Component', () => {
 
 	it('shall apply the Leaflet default-icon path fix-up snippet once', () => {
 		const content = fs.readFileSync(componentPath, 'utf-8');
-		expect(content).toContain('delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl');
+		expect(content).toContain(
+			'delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl'
+		);
 		expect(content).toContain('L.Icon.Default.mergeOptions');
 	});
 
