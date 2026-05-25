@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"haillion/pkg/geocode"
 	"haillion/services/matching/internal/domain"
 	"haillion/services/matching/internal/service"
 )
@@ -15,14 +16,16 @@ type MatchingServer struct {
 }
 
 type UpdateLocationRequest struct {
-	Lat float64 `json:"lat"`
-	Lng float64 `json:"lng"`
+	Lat      *float64 `json:"lat"`
+	Lng      *float64 `json:"lng"`
+	Postcode string   `json:"postcode,omitempty"`
 }
 
 type MatchRequest struct {
-	RiderID string  `json:"rider_id"`
-	Lat     float64 `json:"lat"`
-	Lng     float64 `json:"lng"`
+	RiderID  string   `json:"rider_id"`
+	Lat      *float64 `json:"lat"`
+	Lng      *float64 `json:"lng"`
+	Postcode string   `json:"postcode,omitempty"`
 }
 
 type MatchResponse struct {
@@ -56,13 +59,37 @@ func (s *MatchingServer) handleUpdateLocation(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Validate coordinates range
-	if req.Lat < -90.0 || req.Lat > 90.0 || req.Lng < -180.0 || req.Lng > 180.0 {
-		http.Error(w, "invalid coordinate range", http.StatusBadRequest)
+	// Resolution strategy using pointer checks:
+	// We check if Lat and Lng pointers are non-nil and their values are in range.
+	// If they are present & valid, we use them directly.
+	// Otherwise, we fallback to postcode resolution if a postcode is provided.
+	// If neither is valid/present, we return a 400 bad request error.
+	var lat, lng float64
+	if req.Lat != nil && req.Lng != nil && *req.Lat >= -90.0 && *req.Lat <= 90.0 && *req.Lng >= -180.0 && *req.Lng <= 180.0 {
+		lat = *req.Lat
+		lng = *req.Lng
+	} else if req.Postcode != "" {
+		geoLoc, err := geocode.LookupOutward(r.Context(), req.Postcode)
+		if err != nil {
+			if errors.Is(err, geocode.ErrInvalidPostcode) {
+				http.Error(w, "invalid postcode", http.StatusBadRequest)
+				return
+			}
+			if errors.Is(err, geocode.ErrPostcodeNotFound) {
+				http.Error(w, "postcode not found", http.StatusBadRequest)
+				return
+			}
+			http.Error(w, "failed to resolve postcode", http.StatusBadRequest)
+			return
+		}
+		lat = geoLoc.Lat
+		lng = geoLoc.Lng
+	} else {
+		http.Error(w, "missing location: provide postcode or lat/lng", http.StatusBadRequest)
 		return
 	}
 
-	loc := domain.Location{Lat: req.Lat, Lng: req.Lng}
+	loc := domain.Location{Lat: lat, Lng: lng}
 	if err := s.repo.UpdateLocation(r.Context(), driverID, loc); err != nil {
 		http.Error(w, "failed to update location", http.StatusInternalServerError)
 		return
@@ -83,12 +110,37 @@ func (s *MatchingServer) handleMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Lat < -90.0 || req.Lat > 90.0 || req.Lng < -180.0 || req.Lng > 180.0 {
-		http.Error(w, "invalid coordinate range", http.StatusBadRequest)
+	// Resolution strategy using pointer checks:
+	// We check if Lat and Lng pointers are non-nil and their values are in range.
+	// If they are present & valid, we use them directly.
+	// Otherwise, we fallback to postcode resolution if a postcode is provided.
+	// If neither is valid/present, we return a 400 bad request error.
+	var lat, lng float64
+	if req.Lat != nil && req.Lng != nil && *req.Lat >= -90.0 && *req.Lat <= 90.0 && *req.Lng >= -180.0 && *req.Lng <= 180.0 {
+		lat = *req.Lat
+		lng = *req.Lng
+	} else if req.Postcode != "" {
+		geoLoc, err := geocode.LookupOutward(r.Context(), req.Postcode)
+		if err != nil {
+			if errors.Is(err, geocode.ErrInvalidPostcode) {
+				http.Error(w, "invalid postcode", http.StatusBadRequest)
+				return
+			}
+			if errors.Is(err, geocode.ErrPostcodeNotFound) {
+				http.Error(w, "postcode not found", http.StatusBadRequest)
+				return
+			}
+			http.Error(w, "failed to resolve postcode", http.StatusBadRequest)
+			return
+		}
+		lat = geoLoc.Lat
+		lng = geoLoc.Lng
+	} else {
+		http.Error(w, "missing location: provide postcode or lat/lng", http.StatusBadRequest)
 		return
 	}
 
-	riderLoc := domain.Location{Lat: req.Lat, Lng: req.Lng}
+	riderLoc := domain.Location{Lat: lat, Lng: lng}
 	// Default radius of 5000 meters (5km) for the MVP match
 	radiusMeters := 5000.0
 
