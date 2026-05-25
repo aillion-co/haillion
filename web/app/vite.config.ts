@@ -10,6 +10,7 @@ export default defineConfig({
 		}
 	},
 	test: {
+		globals: true,
 		expect: { requireAssertions: true },
 		projects: [
 			{
@@ -17,6 +18,7 @@ export default defineConfig({
 				test: {
 					name: 'server',
 					environment: 'node',
+					globals: true,
 					include: ['src/**/*.{test,spec}.{js,ts}'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
