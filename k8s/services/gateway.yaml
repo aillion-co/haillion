@@ -62,6 +62,8 @@ spec:
               value: "http://review:8085"
             - name: NOTIFICATION_URL
               value: "http://notification:8086"
+            - name: FRONTEND_URL
+              value: "http://frontend:3000"
           resources:
             requests:
               cpu: "50m"
